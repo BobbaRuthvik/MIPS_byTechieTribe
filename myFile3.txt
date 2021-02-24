@@ -1,2 +1,8 @@
-add $s1, $s2, $s3
-sub $s4, $s5, $s6
+.data
+Label: .word 1, 2, 3, 4
+.text
+main:
+addi $s1, $zero, 4
+j L1
+Ll: add $s2, $zero, $s1
+jr $ra
