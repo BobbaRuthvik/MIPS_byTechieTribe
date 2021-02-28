@@ -14,19 +14,19 @@ class mipsSimulator {
 		int maxLength;					// I think it's related to size limit mentioned(Please Check)
 		int programCounter;				// to store current line
 		string current_command;			// points to current command line
-		int commandCount;				// total no. of commands in program(basically no. of lines)
+		int TotalLines;				// total no. of commands in program(basically no. of lines)
 		// All commands can be made private but for now let's go with public to make life easy
 	public:
 		mipsSimulator(string filePath) {
-			commandCount = 0;
+			TotalLines = 0;
 			programCounter = 0;
 			maxLength = 10000;
 			string lineInput;
 			ifstream file(filePath);      // File path is basically file name including .txt(I think both file and program needs to be in same directory)
 			if (file.is_open()) {			// opens file and check if it's there or not
 				while (getline(file, lineInput)) {
-					commandCount++;
-					if (commandCount > maxLength) {
+					TotalLines++;
+					if (TotalLines > maxLength) {
 						cout << "File is too large" << endl;
 						exit(1);
 					}
@@ -83,7 +83,7 @@ class mipsSimulator {
 
 // vector<vector<string>>
         void execute(){
-            while(programCounter < commandCount){
+            while(programCounter < TotalLines){
                 // program vector loop, 
 				/*current_command = program[programCounter] */
                 //removeTabsSpaces(current_command);	// return current_command(trimmed)						

@@ -128,7 +128,7 @@ class mipsSimulator {
                 }
             }
             if(operationNumberFormat == -1){
-                cout << "Invalid Operator" << endl;\
+                cout << "Invalid Operator" << endl;
                 exit(1);
             }
             return operationNumberFormat;
@@ -226,7 +226,3 @@ int main() {
 	// mips.execute();
 	return 0;
 }
-
-
-/*.data
-       Label:  .word 1, 2, 3, 4     CAN YOU HEAR???*/
