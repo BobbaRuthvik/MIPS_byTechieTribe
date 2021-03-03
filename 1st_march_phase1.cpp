@@ -79,7 +79,7 @@ class mipsSimulator {
             vector<string> v;
             string temp = "";
             for(int i=0; i<s.size(); i++){
-                if(s[i] == ',' || s[i] == '$' /*|| s[i] == '"'*/){     // if someone writes add $s0 $s1 $s2 still it works...(resolved)
+                if(s[i] == ',' || s[i] == '$'){     // (resolved) if someone writes add $s0 $s1 $s2 still it works...
                     temp+=' ';
                     temp+=s[i];
                     temp+=' ';
@@ -103,7 +103,7 @@ class mipsSimulator {
                     }
                     if(++i != temp.length()){
                         cout << "error";  
-                        exit(1);                 // only one string can be initialized and that too at only end
+                        exit(1);                 // assumption : only one string can be initialized and that too at only end
                     }
                 }
                 if (temp[i] == ' ' || temp[i] == '\t') 
@@ -126,27 +126,25 @@ class mipsSimulator {
             while(programCounter < TotalLines){
                 // discard label name and do execution
                 // atleast one label should be present after .text
-                // are there any fixed names that we cannot use as labels
-                // how to print data section, 
 
                 // int operationToBePerformed = getOperation(current_command);              // also remove command so only registers and memory remain
                 //lineByLineExecute(operationToBePerformed);
             }
         }
 
-        // to do : check .data if it is in first line (resolved)
-        // assumption : label names should be in next line after .data (resolved : now it may not be next line i.e we can have empty lines in between)
-        // assumption : .word may not be followed by label name i.e. .word may be in next line
+        // (resolved) to do : check .data if it is in first line 
+        // (resolved) assumption : label names should be in next line after .data (resolved : now it may not be next line i.e we can have empty lines in between)
+        // assumption : .word/.asciiz should be followed by label name
         // to do : check for reserved keywords is not done
         // assumption : strings after .word are of only of decimal type. I think it can have any character(storing its ascii value) or integers in hexadecimal form or labels etc
         // assumption : only one .data is considered
         void find_data(){
             vector<vector<string>>::iterator itr;
-            for(itr = program.begin(); itr != program.end();  itr++){ 
+            for(itr = program.begin(); itr != program.end();  itr++,programCounter++){ 
                 if((*itr).size() == 0)
                     continue;
                 else if((*itr)[0] == ".data"){
-                    for(itr++; (*itr).size() == 0 || data_types.find((*itr)[0])!=data_types.end() || ((*itr).size()>1 && data_types.find((*itr)[1])!=data_types.end()); itr++){
+                    for(itr++,programCounter++; (*itr).size() == 0 || data_types.find((*itr)[0])!=data_types.end() || ((*itr).size()>1 && data_types.find((*itr)[1])!=data_types.end()); itr++,programCounter++){
                         if((*itr).size() == 0)
                             continue;
                         if((*itr)[1] == ".word" || (*itr)[0] == ".word"){
@@ -196,7 +194,7 @@ class mipsSimulator {
                             
                         }
                     }
-                    itr--;
+                    cout << "PC : " << programCounter << endl;
                     break; // since we assumed that only one .data can be written(if we remove break ,I think code will work fine if we have consecutive .data)
                 }
                 else{
@@ -214,21 +212,22 @@ int main() {
 		cout << "Error occured, file cannot be open" << endl;
 	}
 	string str =   ".data\n"
-                    "Label1: .word 1, 2, 3, 4\n"
+                    "label1: .word 1, 2, 3, 4\n"
                     "Label2: .asciiz \"Hello World!\"\n"
                     ".text\n" 
                     "main:\n" 
                     "addi $s1, $zero, 4\n" 
                     "j L1\n" 
-                    "Ll: add $s2, $zero, $s1\n" 
-                    "jr $ra";
+                    "L1:" 
+                    "add $s2, $zero, $s1\n" 
+                    "jr $ra\n";
 	myFile << str;
 	myFile.close();
 	mipsSimulator mips("myFile3.txt");
 	// mips.execute();
 	return 0;
 }
-
+//lw $s0, 0($s0);  stoi(memory[8+(8/4)][0]); | | | | | | | | | | | | | 
 // where .data can be written?
 // for me now code is running if we put .data only at either starting or ending
 // for time being make assumption of having .data only at starting
