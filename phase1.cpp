@@ -21,7 +21,7 @@ class mipsSimulator {
 		// All commands can be made private but for now let's go with public to make life easy
         map<string, vector<int>> map_word;
 
-        string memory[1024][2];  // arr[I][0] = "101000100100" arr[][1] = type
+        string memory[1024][2];  // arr[I][0] = "10100" arr[][1] = type
         map<string, int> labels; // for storing address associated with label
         int current_mem_address = 0;
 
@@ -56,6 +56,10 @@ class mipsSimulator {
                 }
 
                 find_data();
+                cout << "curr_mem : " << current_mem_address << endl;
+                for(auto x : labels){
+                    cout << x.first << " " << x.second << endl;
+                }
                 Memdisplay();
                 // execution()
 			}
@@ -75,8 +79,10 @@ class mipsSimulator {
             vector<string> v;
             string temp = "";
             for(int i=0; i<s.size(); i++){
-                if(s[i] == ',' || s[i] == '$'){     // if someone writes add $s0 $s1 $s2 still it works
-                    temp+=' '; 
+                if(s[i] == ',' || s[i] == '$'){     // (resolved) if someone writes add $s0 $s1 $s2 still it works...
+                    temp+=' ';
+                    temp+=s[i];
+                    temp+=' ';
                 }
                 else{
                     temp += s[i];
@@ -97,7 +103,7 @@ class mipsSimulator {
                     }
                     if(++i != temp.length()){
                         cout << "error";  
-                        exit(1);                 // only one string can be initialized
+                        exit(1);                 // assumption : only one string can be initialized and that too at only end
                     }
                 }
                 if (temp[i] == ' ' || temp[i] == '\t') 
@@ -120,62 +126,81 @@ class mipsSimulator {
             while(programCounter < TotalLines){
                 // discard label name and do execution
                 // atleast one label should be present after .text
-                // are there any fixed names that we cannot use as labels
-                // how to print data section, 
 
                 // int operationToBePerformed = getOperation(current_command);              // also remove command so only registers and memory remain
                 //lineByLineExecute(operationToBePerformed);
             }
         }
-        
-        // how to assign address to these data..?
+
+        // (resolved) to do : check .data if it is in first line 
+        // (resolved) assumption : label names should be in next line after .data (resolved : now it may not be next line i.e we can have empty lines in between)
+        // assumption : .word/.asciiz should be followed by label name
+        // to do : check for reserved keywords is not done
+        // assumption : strings after .word are of only of decimal type. I think it can have any character(storing its ascii value) or integers in hexadecimal form or labels etc
+        // assumption : only one .data is considered
         void find_data(){
-            vector<vector<string>>::iterator itr1;
-            for(itr1 = program.begin(); itr1 != program.end();  itr1++){
-                // check .data if it is in first line
-                if((*itr1)[0] == ".data"){
-                    // label names should be in next line after .data
-                    for(itr1++; data_types.find((*itr1)[0])!=data_types.end() || ((*itr1).size()>1 && data_types.find((*itr1)[1])!=data_types.end()); itr1++){
-                        if((*itr1)[1] == ".word" || (*itr1)[0] == ".word"){
-                            // .word may not be followed by label name i.e. .word may be in next line
-                            // check for reserved keywords is not done
+            vector<vector<string>>::iterator itr;
+            for(itr = program.begin(); itr != program.end();  itr++,programCounter++){ 
+                if((*itr).size() == 0)
+                    continue;
+                else if((*itr)[0] == ".data"){
+                    for(itr++,programCounter++; (*itr).size() == 0 || data_types.find((*itr)[0])!=data_types.end() || ((*itr).size()>1 && data_types.find((*itr)[1])!=data_types.end()); itr++,programCounter++){
+                        if((*itr).size() == 0)
+                            continue;
+                        if((*itr)[1] == ".word" || (*itr)[0] == ".word"){
+                            
                             int flag = 0;
-                            if((*itr1)[1] == ".word"){
+                            if((*itr)[1] == ".word"){
                                 flag = 1;
-                                int size = (*itr1)[0].size();
-                                if((*itr1)[0][size-1] == ':')
-                                    labels[(*itr1)[0].substr(size-1)] = current_mem_address;
+                                int size = (*itr)[0].size();
+                                if((*itr)[0][size-1] == ':')
+                                    labels[(*itr)[0]] = current_mem_address;
                                 else{
-                                    cout << "error in line ..";
+                                    cout << "error in line ...";
                                     exit(1);
                                 }
                             }
-                            for(int j=flag+1; j<(*itr1).size(); j++){
-                                memory[current_mem_address][0] = (*itr1)[j];
+                            for(int j=flag+1; j<(*itr).size(); j++){
+                                memory[current_mem_address][0] = (*itr)[j];  
                                 memory[current_mem_address][1] = "word";
                                 current_mem_address++; 
+                                if(++j < (*itr).size()){    // in QTspim if we write ',' or ' ', code is working, but now our code will work fine only if integers are seperated by ',' only
+                                    if((*itr)[j] == ",")
+                                        continue;
+                                    else {
+                                        cout << "error in line (No comma',')";
+                                        exit(1);
+                                    }
+                                }
+                                
                             }
                         }
-                        if((*itr1)[1] == ".asciiz" || (*itr1)[0] == ".asciiz"){
+                        if((*itr)[1] == ".asciiz" || (*itr)[0] == ".asciiz"){
                             // did only for one string initialization i.e .asciiz "abk" <-only one string
                             int flag = 0;
-                            if((*itr1).size() > 0 && (*itr1)[1] == ".asciiz"){
+                            if((*itr).size() > 0 && (*itr)[1] == ".asciiz"){
                                 flag = 1;
-                                int size = (*itr1)[0].size();
-                                if((*itr1)[0][size-1] == ':')
-                                    labels[(*itr1)[0].substr(size-1)] = current_mem_address;
+                                int size = (*itr)[0].size();
+                                if((*itr)[0][size-1] == ':')
+                                    labels[(*itr)[0]] = current_mem_address;
                                 else{
-                                    cout << "error in line ..";
+                                    cout << "error in line ...";
                                     exit(1);
                                 }
                             }
-                            memory[current_mem_address][0] = (*itr1)[flag+1];
+                            memory[current_mem_address][0] = (*itr)[flag+1];
                             memory[current_mem_address][1] = "asciiz";   // how to differentiate asciiz and ascii
                             current_mem_address++;
                             
                         }
                     }
+                    cout << "PC : " << programCounter << endl;
+                    break; // since we assumed that only one .data can be written(if we remove break ,I think code will work fine if we have consecutive .data)
                 }
+                else{
+                    return; // since we assumed, .data can be written only at starting
+                }
+                programCounter++;
             }
         }
 };
@@ -186,22 +211,24 @@ int main() {
 	if (!myFile.is_open()) {
 		cout << "Error occured, file cannot be open" << endl;
 	}
-	string str1 = ".data\n";
-	string str2 = "Label: .word 1, 2, 3, 4\nLabel2: .asciiz \"Hello World!\"\n";
-    string str3 = ".text\n";
-    string str4 = "main:\n";
-    string str5 = "addi $s1, $zero, 4\n";
-    string str6 = "j L1\n";
-    string str7 = "Ll: add $s2, $zero, $s1\n";
-    string str8 = "jr $ra";
-	myFile << str1 << str2 << str3 << str4 << str5 << str6 << str7 << str8;
+	string str =   ".data\n"
+                    "label1: .word 1, 2, 3, 4\n"
+                    "Label2: .asciiz \"Hello World!\"\n"
+                    ".text\n" 
+                    "main:\n" 
+                    "addi $s1, $zero, 4\n" 
+                    "j L1\n" 
+                    "L1:" 
+                    "add $s2, $zero, $s1\n" 
+                    "jr $ra\n";
+	myFile << str;
 	myFile.close();
 	mipsSimulator mips("myFile3.txt");
 	// mips.execute();
 	return 0;
 }
-
+//lw $s0, 0($s0);  stoi(memory[8+(8/4)][0]); | | | | | | | | | | | | | 
 // where .data can be written?
 // for me now code is running if we put .data only at either starting or ending
-// for time being can we make assumption of having .data only at starting
+// for time being make assumption of having .data only at starting
 // we cannot access part of the string i.e. character by character
