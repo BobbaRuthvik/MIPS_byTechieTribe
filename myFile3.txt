@@ -1,10 +1,11 @@
-
+.data
+Label1: .word 1, 2, 3, 4
+Label2: .asciiz "Hello World!"
 .text
-
 main:
-
-addi $s1, $s2, 6
-bne $s1, $s2, L1
-addi $s1, $s1, 8
-L1: 
-    addi $s1, $s1, 3
+addi $s1, $zero, 3
+bne $zero, $s1, L1
+addi $s3, $zero, 1
+L1:
+add $s2, $s1, $s1
+jr $ra
