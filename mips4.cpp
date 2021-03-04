@@ -71,7 +71,7 @@ class mipsSimulator {
             vector<string> v;
             string temp = "";
             for(int i=0; i<s.size(); i++){
-                if(s[i] == ',' || s[i] == '$'){     // (resolved) if someone writes add $s0 $s1 $s2 still it works...
+                if(s[i] == ',' || s[i] == '$' || s[i] == '(' || s[i] == ')'){     // (resolved) if someone writes add $s0 $s1 $s2 still it works...
                     temp+=' ';
                     temp+=s[i];
                     temp+=' ';
@@ -163,10 +163,17 @@ class mipsSimulator {
                     else if(instruction == "bne"){
                         int tempi;
                         tempi = bne(program[i], i);
+                        if(tempi==program.size()){
+                            cout << "Label not found " << endl;
+                            exit(1);
+                        }
                         if(tempi != -1){
                             i = tempi;
                             programCounter = i;
                         }
+                    }
+                    else if(instruction == "lw"){
+                        lw(program[i], i);
                     }
                     else{
                         continue;
@@ -272,6 +279,34 @@ class mipsSimulator {
             }
         }
 
+        void lw(vector<string> v, int pc){
+            // lw $s0, 0($s2)
+            if(v[1] == "$" && v[3] == "," && v[5] == "(" && v[6] == "$" && v[8] == ")"){
+                int b = stoi(v[4]);
+                int c = map_instructions.find(v[7]) -> second;
+                if(b%4 != 0 && memory[(b + c)/4][1] != "word" && c%4 != 0){
+                    cout << "Error in line " << pc << "." << endl;
+                    exit(1);
+                }
+                cout << "To be stored: " << stoi(memory[(b + c)/4][0]) << endl;
+                map_instructions[v[2]] = stoi(memory[(b + c)/4][0]);
+            }
+        }
+
+        // void sw(vector<string> v, int pc){
+        //     // sw $s0, 0($s2)
+        //     if(v[1] == "$" && v[3] == "," && v[5] == "(" && v[6] == "$" && v[8] == ")"){
+        //         int b = stoi(v[4]);
+        //         int c = map_instructions.find(v[7]) -> second;
+        //         if(b%4 != 0 && memory[(b + c)/4][1] != "word" && c%4 != 0){
+        //             cout << "Error in line " << pc << "." << endl;
+        //             exit(1);
+        //         }
+        //         cout << "To be stored: " << stoi(memory[(b + c)/4][0]) << endl;
+        //         map_instructions[v[2]] = stoi(memory[(b + c)/4][0]);
+        //     }
+        // }
+
         void find_data(){
             vector<vector<string>>::iterator itr;
             for(itr = program.begin(); itr != program.end();  itr++,programCounter++){ 
@@ -337,6 +372,8 @@ class mipsSimulator {
                 programCounter++;
             }
         }
+
+
 };
 
 int main() {
