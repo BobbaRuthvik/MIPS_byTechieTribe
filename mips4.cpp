@@ -21,10 +21,19 @@ class mipsSimulator {
 		// All commands can be made private but for now let's go with public to make life easy
         map<string, vector<int>> map_word;
         string memory[1024][2];  // arr[I][0] = "10100" arr[][1] = type
+        int freeMemoryAvailable = 1024; // bytes
         map<string, int> labels; // for storing address associated with label
         int current_mem_address = 0;
 	public:
 		mipsSimulator(string filePath) {
+            std::ifstream in(filePath, std::ifstream::ate | std::ifstream::binary);
+            int a = in.tellg();
+            cout << a << " bytes file." << endl;
+            if (a > freeMemoryAvailable) {
+						cout << "File is too large" << endl;
+						exit(1);
+					}
+            freeMemoryAvailable -= a;
 			TotalLines = 0;
 			programCounter = 0;
 			maxLength = 10000;
@@ -33,10 +42,6 @@ class mipsSimulator {
 			if (file.is_open()) {			// opens file and check if it's there or not
 				while (getline(file, lineInput)) {
 					TotalLines++;
-					if (TotalLines > maxLength) {
-						cout << "File is too large" << endl;
-						exit(1);
-					}
 					program.push_back(subVector(lineInput));		// now entire program is stored line by line, no file business anymore
 				}
 				file.close();
@@ -430,6 +435,7 @@ class mipsSimulator {
                 cout << "--------------------" << endl;
                 Memdisplay();
                 cout << programCounter << endl;
+                cout << "freeMemoryAvailable : " << freeMemoryAvailable << endl;
                 exit(1);
             }
             else{
@@ -453,17 +459,30 @@ class mipsSimulator {
                             if((*itr)[1] == ".word"){
                                 flag = 1;
                                 int size = (*itr)[0].size();
-                                if((*itr)[0][size-1] == ':')
-                                    labels[(*itr)[0].substr(0,size-1)] = current_mem_address;
+                                if((*itr)[0][size-1] == ':'){
+                                    if(freeMemoryAvailable >= 4)
+                                        labels[(*itr)[0].substr(0,size-1)] = current_mem_address;
+                                    else{
+                                        cout << "memory limit exceeded" << endl;
+                                        exit(1);
+                                    }
+                                }
                                 else{
-                                    cout << "error in line ...";
-                                    exit(1);
+                                    cout << "Error in line " << programCounter+1 << "." << endl;
+                                        exit(1);
                                 }
                             }
                             for(int j=flag+1; j<(*itr).size(); j++){
-                                memory[current_mem_address][0] = (*itr)[j];  
-                                memory[current_mem_address][1] = "word";
-                                current_mem_address++; 
+                                if(freeMemoryAvailable >= 4){
+                                    memory[current_mem_address][0] = (*itr)[j];  
+                                    memory[current_mem_address][1] = "word";
+                                    current_mem_address++;
+                                    freeMemoryAvailable -= 4;
+                                }
+                                else{
+                                        cout << "memory limit exceeded" << endl;
+                                        exit(1);
+                                    }
                                 if(++j < (*itr).size()){    // in QTspim if we write ',' or ' ', code is working, but now our code will work fine only if integers are seperated by ',' only
                                     if((*itr)[j] == ",")
                                         continue;
@@ -481,16 +500,24 @@ class mipsSimulator {
                             if((*itr).size() > 0 && (*itr)[1] == ".asciiz"){
                                 flag = 1;
                                 int size = (*itr)[0].size();
-                                if((*itr)[0][size-1] == ':')
-                                    labels[(*itr)[0].substr(0,size-1)] = current_mem_address;
+                                if((*itr)[0][size-1] == ':'){
+                                    if(freeMemoryAvailable >>= (*itr)[flag+1].size())
+                                        labels[(*itr)[0].substr(0,size-1)] = current_mem_address;
+                                    else{
+                                        cout << "memory limit exceeded" << endl;
+                                        exit(1);
+                                    }
+                                }
                                 else{
                                     cout << "Error in line " << programCounter+1 << "." << endl;
                                     exit(1);
                                 }
                             }
-
-                            memory[current_mem_address][0] = (*itr)[flag+1];
-                            memory[current_mem_address][1] = "asciiz";   // how to differentiate asciiz and ascii
+                            if(freeMemoryAvailable >= (*itr)[flag+1].size()){
+                                memory[current_mem_address][0] = (*itr)[flag+1];
+                                memory[current_mem_address][1] = "asciiz";   // how to differentiate asciiz and 
+                                freeMemoryAvailable -= (*itr)[flag+1].size();
+                            }
                             int cma = current_mem_address;
                             int len = (*itr)[flag+1].length();
                             // abcdefgh
