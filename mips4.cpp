@@ -128,7 +128,6 @@ class mipsSimulator {
             else
                 programCounter = ++i;
             initialize();
-            // cout << "ProgramCounter: " << programCounter << endl;
             for(i=programCounter; i<program.size(); i++){
                 if(program[i].size()!=0){
                     if(program[i][0] == "main:"){
@@ -142,11 +141,9 @@ class mipsSimulator {
             }
             programCounter = ++i;
             cout <<"start:"<< programCounter << endl;
-            // cout << "ProgramCounter: " << programCounter << endl;
             for(i=programCounter; i<program.size(); i++){
                 if(program[i].size()!=0){
                     string instruction = program[i][0];
-                    // cout << instruction << endl;
                     if(instruction == "add"){
                         add(program[i], i);
                     }
@@ -192,24 +189,29 @@ class mipsSimulator {
                     }
                     else if(instruction == "la"){
                         la(program[i], i);
-                        cout << "00000 " << i+1 << " " << map_instructions["s0"] << endl;
                     }
                     else if(instruction == "slt"){
                         slt(program[i], i);
                     }
+                    else if(instruction == "syscall"){
+                        syscall(i);
+                    }
                     else{
-                        // if(program[i].size() == 1 && instruction[instruction.length()-1] == ':') // since label name is single string and ending with ':'
-                        //     continue;
-                        // else{
-                        //     cout << "Error in line " << i << "." << endl;
-                        //     exit(1);
-                        // } 
-                        continue;
+                        if(program[i].size() == 1 && instruction[instruction.length()-1] == ':') // since label name is single string and ending with ':'
+                            continue;
+                        else{
+                            cout << "Error in line " << i+1 << "." << endl;
+                            exit(1);
+                        } 
                     }
                 }
                 // cout <<"hi: "<< programCounter << endl; 
                 programCounter++;
-                // cout <<"bye: "<< programCounter << endl;    
+                // cout <<"bye: "<< programCounter << endl;   
+                if(i+1 == program.size()){ // assumption :  there must be a syscall for exit else there will be an error
+                    cout << "No exit call" << endl;
+                    exit(1);
+                } 
             }
             registerDisplay();
             cout << "----------" << endl;
@@ -240,7 +242,7 @@ class mipsSimulator {
                 map_instructions.find(v[2]) -> second = c;
             }
             else{
-                cout << "Error in line " << pc << "." << endl;
+                cout << "Error in line " << pc+1 << "." << endl;
                 exit(1);
             }
         }
@@ -261,7 +263,7 @@ class mipsSimulator {
                 }
             }
             else{
-                cout << "Error in line " << pc << "." << endl;
+                cout << "Error in line " << pc+1 << "." << endl;
                 exit(1);
             }
         }
@@ -274,7 +276,7 @@ class mipsSimulator {
                 map_instructions.find(v[2]) -> second = c;
             }
             else{
-                cout << "Error in line " << pc << "." << endl;
+                cout << "Error in line " << pc+1 << "." << endl;
                 exit(1);
             }
         }
@@ -293,7 +295,7 @@ class mipsSimulator {
                 return i;
             }
             else{
-                cout << "Error in line " << pc << "." << endl;
+                cout << "Error in line " << pc+1 << "." << endl;
                 exit(1);
             }
         }
@@ -319,7 +321,7 @@ class mipsSimulator {
                 return i;
             }
             else{
-                cout << "Error in line " << pc << "." << endl;
+                cout << "Error in line " << pc+1 << "." << endl;
                 exit(1);
             }
         }
@@ -344,7 +346,7 @@ class mipsSimulator {
                 return i;
             }
             else{
-                cout << "Error in line " << pc << "." << endl;
+                cout << "Error in line " << pc+1 << "." << endl;
                 exit(1);
             }
         }
@@ -355,14 +357,14 @@ class mipsSimulator {
                 int b = stoi(v[4]);
                 int c = map_instructions.find(v[7]) -> second;
                 if(b%4 != 0 && memory[(b + c)/4][1] != "word" && c%4 != 0){
-                    cout << "Error in line " << pc << "." << endl;
+                    cout << "Error in line " << pc+1 << "." << endl;
                     exit(1);
                 }
                 map_instructions[v[2]] = stoi(memory[(b + c)/4][0]);
                 
             }
             else{
-                cout << "Error in line " << pc << "." << endl;
+                cout << "Error in line " << pc+1 << "." << endl;
                 exit(1);
             }
         }
@@ -374,13 +376,13 @@ class mipsSimulator {
                 int b = stoi(v[4]);
                 int c = map_instructions.find(v[7]) -> second;
                 if(b%4 != 0 && memory[(b + c)/4][1] != "word" && c%4 != 0){
-                    cout << "Error in line " << pc << "." << endl;
+                    cout << "Error in line " << pc+1 << "." << endl;
                     exit(1);
                 }
                 memory[(b + c)/4][0] = to_string(a);
             }
             else{
-                cout << "Error in line " << pc << "." << endl;
+                cout << "Error in line " << pc+1 << "." << endl;
                 exit(1);
             }
         }
@@ -392,12 +394,12 @@ class mipsSimulator {
                     map_instructions[v[2]] = labels.find(v[4]) -> second;
                 }
                 else{
-                cout << "Error in line " << pc << "." << endl;
+                cout << "Error in line " << pc+1 << "." << endl;
                 exit(1);
-            }
+                }
             }
             else{
-                cout << "Error in line " << pc << "." << endl;
+                cout << "Error in line " << pc+1 << "." << endl;
                 exit(1);
             }
         }
@@ -416,7 +418,22 @@ class mipsSimulator {
                     map_instructions[v[2]] = 0;
             }
             else{
-                cout << "Error in line " << pc << "." << endl;
+                cout << "Error in line " << pc+1 << "." << endl;
+                exit(1);
+            }
+        }
+
+        // assumption : syscall is used only for exit. therefore before calling syscall v0 should be 10 else syntax error
+        void syscall(int pc){
+            if(map_instructions.find("v0") -> second == 10){
+                registerDisplay();
+                cout << "--------------------" << endl;
+                Memdisplay();
+                cout << programCounter << endl;
+                exit(1);
+            }
+            else{
+                cout << "Error in line " << pc+1 << "." << endl;
                 exit(1);
             }
         }
@@ -451,7 +468,7 @@ class mipsSimulator {
                                     if((*itr)[j] == ",")
                                         continue;
                                     else {
-                                        cout << "error in line (No comma',')";
+                                        cout << "Error in line " << programCounter+1 << "." << endl;
                                         exit(1);
                                     }
                                 }
@@ -467,7 +484,7 @@ class mipsSimulator {
                                 if((*itr)[0][size-1] == ':')
                                     labels[(*itr)[0].substr(0,size-1)] = current_mem_address;
                                 else{
-                                    cout << "error in line ...";
+                                    cout << "Error in line " << programCounter+1 << "." << endl;
                                     exit(1);
                                 }
                             }
@@ -489,7 +506,7 @@ class mipsSimulator {
                             current_mem_address++;
                         }
                     }
-                    cout << "PC : " << programCounter << endl;
+                    // cout << "PC : " << programCounter << endl;
                     break; // since we assumed that only one .data can be written(if we remove break ,I think code will work fine if we have consecutive .data)
                 }
                 else{
@@ -503,24 +520,12 @@ class mipsSimulator {
 };
 
 int main() {
-	cout << "MIPS Simulator" << endl;
-	// int option                  // for mode selection(Step by Step execution / Whole execution)
-	// we can also open file from here
-	/*ofstream myFile("myFile3.txt");
-	if (!myFile.is_open()) {
-		cout << "Error occured, file cannot be open" << endl;
-	}
-    string str0 = "\n";
-    string str1 = ".text\n";
-    string str2 = "\n";
-    string str3 = ".main\n";
-    string str4 = "\n";
-	string str5 = "addi $s1, $s2, 3\n";
-    string str6 = "\n";
-	string str7 = "sub $s4, $s1, $s6";
-	myFile << str0 << str1 << str2 << str3 << str4 << str5 << str6 << str7;
-	myFile.close();*/
-	mipsSimulator mips("myFile3.txt");
+	cout << "MIPS Simulator\n Enter your file's name\n" << endl;
+    string s;
+    cin >> s;
+	mipsSimulator mips(s);
 	mips.execute();
 	return 0;
 }
+
+// check memory limit...
