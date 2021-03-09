@@ -30,7 +30,6 @@ class mipsSimulator {
 				exit(1);
 			}
             freeMemoryAvailable -= a;
-            cout << "Dddddddddd" << freeMemoryAvailable << endl;
 			TotalLines = 0;
 			programCounter = 0;
 			string lineInput;
@@ -58,7 +57,7 @@ class mipsSimulator {
 
         void Memdisplay(){                      // dislays memory occupied
             for(int i=0; i<current_mem_address; i++){
-                cout << "\t" << i << "\t" << memory[i][0] << endl;
+                cout << "\t" << i*4 << "\t" << memory[i][0] << endl;
             }
         }
 
