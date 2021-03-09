@@ -10,7 +10,7 @@ using namespace std;
 class mipsSimulator {
 	private:
 		string registerNames[32] = {"zero", "at", "v0", "v1", "a0", "a1", "a2", "a3", "t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7", "s0", "s1", "s2", "s3", "s4", "s5", "s6", "s7", "t8", "t9", "k0", "k1", "gp", "sp", "fp", "ra"};
-		map<string, int> map_instructions;
+		map<string, int> Register;
 		vector<vector<string>> program; // entire program is stored line by line
         set<string> data_types = {".word", ".asciiz"};
 		int programCounter;				// to store current line
@@ -26,10 +26,11 @@ class mipsSimulator {
             int a = in.tellg();
             cout << a << " bytes file." << endl;
             if (a > freeMemoryAvailable) {
-						cout << "File is too large" << endl;
-						exit(1);
-					}
+				cout << "File is too large" << endl;
+				exit(1);
+			}
             freeMemoryAvailable -= a;
+            cout << "Dddddddddd" << freeMemoryAvailable << endl;
 			TotalLines = 0;
 			programCounter = 0;
 			string lineInput;
@@ -57,7 +58,7 @@ class mipsSimulator {
 
         void Memdisplay(){                      // dislays memory occupied
             for(int i=0; i<current_mem_address; i++){
-                cout << memory[i][0] << " " << memory[i][1] << endl;
+                cout << "\t" << i << "\t" << memory[i][0] << endl;
             }
         }
 
@@ -203,10 +204,8 @@ class mipsSimulator {
                             exit(1);
                         } 
                     }
-                }
-                // cout <<"hi: "<< programCounter << endl; 
+                } 
                 programCounter++;
-                // cout <<"bye: "<< programCounter << endl;   
                 if(i+1 == program.size()){ // assumption :  there must be a syscall for exit else there will be an error
                     cout << "No exit call" << endl;
                     exit(1);
@@ -322,7 +321,7 @@ class mipsSimulator {
                 programCounter++;
                 // cout <<"bye: "<< programCounter << endl;   
                 if(i+1 == program.size()){ // assumption :  there must be a syscall for exit else there will be an error
-                    cout << "No exit call" << endl;
+                    cout << "\nERROR : No exit call" << endl;
                     exit(1);
                 } 
             }
@@ -334,7 +333,7 @@ class mipsSimulator {
 
         void registerDisplay(){
                 map<string, int>::iterator itr;
-                for(itr = map_instructions.begin(); itr!=map_instructions.end(); itr++)
+                for(itr = Register.begin(); itr!=Register.end(); itr++)
                     cout << "\t" << itr -> first << "\t" << itr -> second << endl;
         }
 
@@ -342,17 +341,17 @@ class mipsSimulator {
             string temp = "";
             for(int i=0; i<32; i++){
                 temp = registerNames[i];
-                map_instructions.insert(pair<string, int>(temp, 0));
+                Register.insert(pair<string, int>(temp, 0));
             }
             // string registerNames[32] = {"zero", "at", "v0", "v1", "a0", "a1", "a2", "a3", "t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7", "s0", "s1", "s2", "s3", "s4", "s5", "s6", "s7", "t8", "t9", "k0", "k1", "gp", "sp", "fp", "ra"};
         }
 
         void add(vector<string> v, int pc){  
             if(v.size() == 9 && v[1] == "$" && v[4] == "$" && v[7] == "$" && v[3] == "," && v[6] == ","){
-                int a = map_instructions.find(v[5]) -> second;
-                int b = map_instructions.find(v[8]) -> second;
+                int a = Register.find(v[5]) -> second;
+                int b = Register.find(v[8]) -> second;
                 int c = a + b;
-                map_instructions.find(v[2]) -> second = c;
+                Register.find(v[2]) -> second = c;
             }
             else{
                 cout << "Error in line " << pc+1 << "." << endl;
@@ -364,15 +363,15 @@ class mipsSimulator {
         void sub(vector<string> v, int pc){
             if((v.size() == 9 || v.size() == 8) && v[1] == "$" && v[4] == "$"  && v[3] == "," && v[6] == ","){
                 if(v.size() == 9 && v[7] == "$"){
-                    int a = map_instructions.find(v[5]) -> second;
-                    int b = map_instructions.find(v[8]) -> second;
+                    int a = Register.find(v[5]) -> second;
+                    int b = Register.find(v[8]) -> second;
                     int c = a - b;
-                    map_instructions.find(v[2]) -> second = c;
+                    Register.find(v[2]) -> second = c;
                 }
                 else{
-                    int a = map_instructions.find(v[5]) -> second;
+                    int a = Register.find(v[5]) -> second;
                     int c = a - stoi(v[7]);
-                    map_instructions.find(v[2]) -> second = c;
+                    Register.find(v[2]) -> second = c;
                 }
             }
             else{
@@ -383,10 +382,10 @@ class mipsSimulator {
 
         void addi(vector<string> v, int pc){
             if(v.size() == 8 && v[1] == "$" && v[4] == "$" && v[3] == "," && v[6] == ","){
-                int a = map_instructions.find(v[5]) -> second;
+                int a = Register.find(v[5]) -> second;
                 int b = stoi(v[7]);
                 int c = a + b;
-                map_instructions.find(v[2]) -> second = c;
+                Register.find(v[2]) -> second = c;
             }
             else{
                 cout << "Error in line " << pc+1 << "." << endl;
@@ -417,8 +416,8 @@ class mipsSimulator {
         int bne(vector<string> v, int pc){
             if(v.size() == 8 && v[1] == "$" && v[4] == "$" && v[3] == "," && v[6] == ","){
                 string label = v[7] + ":";
-                int a = map_instructions.find(v[2]) -> second;
-                int b = map_instructions.find(v[5]) -> second;
+                int a = Register.find(v[2]) -> second;
+                int b = Register.find(v[5]) -> second;
                 int i;
                 if(a != b){
                     for(i=0; i<program.size(); i++){
@@ -442,8 +441,8 @@ class mipsSimulator {
         int beq(vector<string> v, int pc){
             if(v.size() == 8 && v[1] == "$" && v[4] == "$" && v[3] == "," && v[6] == ","){
                 string label = v[7] + ":";
-                int a = map_instructions.find(v[2]) -> second;
-                int b = map_instructions.find(v[5]) -> second;
+                int a = Register.find(v[2]) -> second;
+                int b = Register.find(v[5]) -> second;
                 int i;
                 if(a == b){
                     for(i=0; i<program.size(); i++){
@@ -468,12 +467,12 @@ class mipsSimulator {
             // lw $s0, 0($s2)
             if(v.size() == 9 && v[1] == "$" && v[3] == "," && v[5] == "(" && v[6] == "$" && v[8] == ")"){
                 int b = stoi(v[4]);
-                int c = map_instructions.find(v[7]) -> second;
+                int c = Register.find(v[7]) -> second;
                 if(b%4 != 0 && memory[(b + c)/4][1] != "word" && c%4 != 0){
                     cout << "Error in line " << pc+1 << "." << endl;
                     exit(1);
                 }
-                map_instructions[v[2]] = stoi(memory[(b + c)/4][0]);
+                Register[v[2]] = stoi(memory[(b + c)/4][0]);
                 
             }
             else{
@@ -485,9 +484,9 @@ class mipsSimulator {
         void sw(vector<string> v, int pc){
             // sw $s0, 0($s2)
             if(v.size() == 9 && v[1] == "$" && v[3] == "," && v[5] == "(" && v[6] == "$" && v[8] == ")"){
-                int a = map_instructions.find(v[2]) -> second;
+                int a = Register.find(v[2]) -> second;
                 int b = stoi(v[4]);
-                int c = map_instructions.find(v[7]) -> second;
+                int c = Register.find(v[7]) -> second;
                 if(b%4 != 0 && memory[(b + c)/4][1] != "word" && c%4 != 0){
                     cout << "Error in line " << pc+1 << "." << endl;
                     exit(1);
@@ -504,7 +503,7 @@ class mipsSimulator {
             // la $ s0 , label
             if(v.size() == 5 && v[1] == "$" && v[3] == ","){
                 if(labels.find(v[4]) != labels.end()){
-                    map_instructions[v[2]] = labels.find(v[4]) -> second;
+                    Register[v[2]] = labels.find(v[4]) -> second;
                 }
                 else{
                 cout << "Error in line " << pc+1 << "." << endl;
@@ -519,7 +518,7 @@ class mipsSimulator {
         // li $ v0 , 10
         void li(vector<string> v, int pc){
             if(v.size() == 5 && v[1] == "$" && v[3] == ","){
-                map_instructions.find(v[2]) -> second = stoi(v[4]);
+                Register.find(v[2]) -> second = stoi(v[4]);
             }
             else{
                 cout << "Error in line " << pc+1 << "." << endl;
@@ -532,13 +531,13 @@ class mipsSimulator {
         void slt(vector<string> v, int pc){
             // slt $ t2 , $ t0 , $ t1
             if(v.size() == 9 && v[1] == "$" && v[4] == "$" && v[7] == "$" && v[3] == "," && v[6] == ","){
-                int b = map_instructions.find(v[5]) -> second;
-                int c = map_instructions.find(v[8]) -> second;
+                int b = Register.find(v[5]) -> second;
+                int c = Register.find(v[8]) -> second;
 
                 if(b<c)
-                    map_instructions[v[2]] = 1;
+                    Register[v[2]] = 1;
                 else
-                    map_instructions[v[2]] = 0;
+                    Register[v[2]] = 0;
             }
             else{
                 cout << "Error in line " << pc+1 << "." << endl;
@@ -546,25 +545,29 @@ class mipsSimulator {
             }
         }
 
-        // assumption : syscall is used only for exit. therefore before calling syscall v0 should be 10 else syntax error
+        // assumption : syscall is used only for exit, printing integers or strings. therefore before calling syscall v0 should be 10 or 1 or 4 else syntax error
         void syscall(int pc){
-            if(map_instructions.find("v0") -> second == 10){
-                cout << "Registers: " << endl;
+            if(Register.find("v0") -> second == 10){
+                cout << "\n\nRegisters: " << endl;
                 registerDisplay();
                 cout << "--------------------" << endl;
                 cout << "Memory: " << endl;
                 Memdisplay();
-                // cout << programCounter << endl;
                 exit(1);
             }
-            // if(map_instructions.find("v0") -> second == 1){
-            //     cout << (map_instructions.find("a0") -> second) << endl;
-            //     registerDisplay();
-            //     cout << "--------------------" << endl;
-            //     Memdisplay();
-            //     // cout << programCounter << endl;
-            //     exit(1);
-            // }
+            else if(Register.find("v0") -> second == 1){
+                cout << (Register.find("a0") -> second);
+            }
+            else if(Register.find("v0") -> second == 4){
+                int a = Register.find("a0") -> second;
+                if(current_mem_address > a && memory[a][1] == "asciiz"){
+                    cout << memory[a][0];
+                }
+                else{
+                    cout << "Error in line " << pc+1 << "." << endl;
+                    exit(1);
+                }
+            }
             else{
                 cout << "Error in line " << pc+1 << "." << endl;
                 exit(1);
@@ -609,8 +612,8 @@ class mipsSimulator {
                                 else{
                                         cout << "memory limit exceeded" << endl;
                                         exit(1);
-                                    }
-                                if(++j < (*itr).size()){    // in QTspim if we write ',' or ' ', code is working, but now our code will work fine only if integers are seperated by ',' only
+                                }
+                                if(++j < (*itr).size()){    
                                     if((*itr)[j] == ",")
                                         continue;
                                     else {
@@ -628,7 +631,7 @@ class mipsSimulator {
                                 flag = 1;
                                 int size = (*itr)[0].size();
                                 if((*itr)[0][size-1] == ':'){
-                                    if(freeMemoryAvailable >>= (*itr)[flag+1].size())
+                                    if(freeMemoryAvailable >= (*itr)[flag+1].size())
                                         labels[(*itr)[0].substr(0,size-1)] = current_mem_address;
                                     else{
                                         cout << "memory limit exceeded" << endl;
@@ -642,18 +645,19 @@ class mipsSimulator {
                             }
                             if(freeMemoryAvailable >= (*itr)[flag+1].size()){
                                 memory[current_mem_address][0] = (*itr)[flag+1];
-                                memory[current_mem_address][1] = "asciiz";   // how to differentiate asciiz and 
+                                memory[current_mem_address][1] = "asciiz";   
                                 freeMemoryAvailable -= (*itr)[flag+1].size();
                             }
                             int cma = current_mem_address;
                             int len = (*itr)[flag+1].length();
-                            // abcdefgh
+                            // if (*itr)[flag+1] = "abcdefgh"
                             // memory[4][0] = "abcdefgh"; memory[4][1] = type;
-                            // memory[5][0] = "4"; memory[5][1] = "NULL";
+                            // memory[5][0] = "4" // index of memory where string is stored
+                            // memory[5][1] = "NULL";
                             if(len > 4){
                                 for(int p=4; len > p; p+=4){
                                     current_mem_address++;
-                                    memory[current_mem_address][0] = to_string(cma = 4);
+                                    memory[current_mem_address][0] = to_string(cma);
                                     memory[current_mem_address][1] = "NULL"; 
                                 }
                             }
@@ -673,12 +677,6 @@ class mipsSimulator {
 
 };
 
-// std::ifstream::pos_type filesize(const char* filename)
-// {
-//     std::ifstream in(filename, std::ifstream::ate | std::ifstream::binary);
-//     return in.tellg(); 
-// }
-
 int main() {
 	cout << "/******MIPS Simulator******/\nEnter your file's name: \n";
     string s;
@@ -687,6 +685,7 @@ int main() {
     int opt;
     cout << "\n1- stepByStep execution\n2- Execution\nAny other key to exit\n";
     cin >> opt;
+    cout << "\nConsole : \n";
     switch (opt)
     {
     case 1:
