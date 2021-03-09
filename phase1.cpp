@@ -135,7 +135,6 @@ class mipsSimulator {
                 exit(1);
             }
             programCounter = ++i;
-            cout <<"start:"<< programCounter << endl;
             int opt1 = 1;
             i=programCounter;
             while(i<program.size()){
@@ -252,7 +251,6 @@ class mipsSimulator {
                 exit(1);
             }
             programCounter = ++i;
-            cout <<"start:"<< programCounter << endl;
             for(i=programCounter; i<program.size(); i++){
                 if(program[i].size()!=0){
                     string instruction = program[i][0];
