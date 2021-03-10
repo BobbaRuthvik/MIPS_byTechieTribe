@@ -108,6 +108,7 @@ class mipsSimulator {
         }
 
         void stepByStepEecute(){        // executes step by step
+            
             find_data();
             int i;
             for(i=programCounter; i<program.size(); i++){
@@ -138,6 +139,7 @@ class mipsSimulator {
             int opt1 = 1;
             i=programCounter;
             while(i<program.size()){
+                cout << "\nConsole : \n";
                 if(program[i].size()!=0){
                     string instruction = program[i][0];
                     if(instruction == "add"){
@@ -206,14 +208,16 @@ class mipsSimulator {
                 } 
                 programCounter++;
                 if(i+1 == program.size()){ // assumption :  there must be a syscall for exit else there will be an error
-                    cout << "No exit call" << endl;
+                    cout << "\nERROR : No exit call" << endl;
                     exit(1);
                 }
+                cout << "\n\nRegisters: " << endl;
                 registerDisplay();
-                cout << "----------" << endl;
+                cout << "--------------------" << endl;
+                cout << "Memory: " << endl;
                 Memdisplay();
                 cout << programCounter << endl;
-                cout << "Enter -continue execution, any other key to stop." << endl;
+                cout << "Press Enter - continue execution, any other key to stop." << endl;
                 if (cin.get() == '\n')
                     i++; 
                 else
@@ -222,6 +226,7 @@ class mipsSimulator {
         }
 
         void execute(){                 // Executes program
+            cout << "\nConsole : \n";
             find_data();
             int i;
             for(i=programCounter; i<program.size(); i++){
@@ -316,9 +321,7 @@ class mipsSimulator {
                         } 
                     }
                 }
-                // cout <<"hi: "<< programCounter << endl; 
-                programCounter++;
-                // cout <<"bye: "<< programCounter << endl;   
+                programCounter++;  
                 if(i+1 == program.size()){ // assumption :  there must be a syscall for exit else there will be an error
                     cout << "\nERROR : No exit call" << endl;
                     exit(1);
@@ -649,10 +652,13 @@ class mipsSimulator {
                             }
                             int cma = current_mem_address;
                             int len = (*itr)[flag+1].length();
-                            // if (*itr)[flag+1] = "abcdefgh"
-                            // memory[4][0] = "abcdefgh"; memory[4][1] = type;
-                            // memory[5][0] = "4" // index of memory where string is stored
-                            // memory[5][1] = "NULL";
+
+                            /* if (*itr)[flag+1] = "abcdefgh"
+                               memory[4][0] = "abcdefgh"; memory[4][1] = type;
+                               memory[5][0] = "4" // index of memory where string is stored
+                               memory[5][1] = "NULL";
+                            */
+
                             if(len > 4){
                                 for(int p=4; len > p; p+=4){
                                     current_mem_address++;
@@ -663,7 +669,6 @@ class mipsSimulator {
                             current_mem_address++;
                         }
                     }
-                    // cout << "PC : " << programCounter << endl;
                     break; // since we assumed that only one .data can be written(if we remove break ,I think code will work fine if we have consecutive .data)
                 }
                 else{
@@ -684,7 +689,7 @@ int main() {
     int opt;
     cout << "\n1- stepByStep execution\n2- Execution\nAny other key to exit\n";
     cin >> opt;
-    cout << "\nConsole : \n";
+    
     switch (opt)
     {
     case 1:
