@@ -1,3 +1,4 @@
+https://docs.google.com/spreadsheets/d/12PiLKiLYvmdKcy4POBE31EGX6sucR8nDNE4RUI8ccZA/edit?usp=sharing
 # MIPS_byTechieTribe
 
 Code in phase1.cpp(latest update).
