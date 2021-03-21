@@ -22,6 +22,7 @@ class mipsSimulator {
         int current_mem_address = 0;
         int instrStart = 0;
         int stalls = 0;
+		vector<int> rememberStalls;
 	public:
 		mipsSimulator(string filePath) {            // constructor checks size
             std::ifstream in(filePath, std::ifstream::ate | std::ifstream::binary);
@@ -40,6 +41,7 @@ class mipsSimulator {
 				while (getline(file, lineInput)) {
 					TotalLines++;
 					program.push_back(subVector(lineInput));		// now entire program is stored line by line, no file business anymore
+					rememberStalls.push_back(0);
 				}
 				file.close();
                 cout << "Code:" << endl;
@@ -572,6 +574,10 @@ class mipsSimulator {
                 cout << "--------------------" << endl;
                 cout << "Memory: " << endl;
                 Memdisplay();
+				for(int i=0; i<program.size(); i++){
+					cout << rememberStalls[i] << " ";
+				}
+				cout << endl;
                 cout << "\nStalls : " << stalls << endl;
                 exit(1);
             }
@@ -596,7 +602,7 @@ class mipsSimulator {
 
         // check psuedo instructions, now they are treated as single instruction
         void checkDependency(int i, string reg1){    // polymorphism
-            // cout << "vachina" << endl;
+            cout << "vachina" << endl;
             int copy1 = i;
             while(copy1+1 < program.size() && (program[copy1+1].size() == 0 || program[copy1+1].size() == 1) ){
                 copy1++;
@@ -616,34 +622,159 @@ class mipsSimulator {
             // j jump
             // slt $t2 ,$t0 ,$t1
             // la $s9, label
-            // cout << "\ncopy1 " << copy1+1 << " " << copy2+1 << endl;
+            cout << "\ncopy1 " << copy1+1 << " " << copy2+1 << endl;
             // cout << program[copy1+1][7] << " " << reg1 <<  endl; 
             
+			
+
             if(copy1+1 < program.size() && (program[copy1+1][0] == "add" || program[copy1+1][0] == "slt") && (program[copy1+1][5] == reg1 || program[copy1+1][8] == reg1)){
-                stalls += 2;
+				if(rememberStalls[copy1+1] < 2){
+					rememberStalls[copy1+1] = 2;
+				}
+				//stall += 2
                 return;
             }
             if(copy1+1 < program.size() && (program[copy1+1][0] == "lw") && (program[copy1+1][7] == reg1)){
-                stalls += 2;
-                cout << stalls <<  endl;
+                if(rememberStalls[copy1+1] < 2){
+					rememberStalls[copy1+1] = 2;
+				}
+				cout << "lw ki vachina,  rememberStalls[copy1+1]: "<< rememberStalls[copy1+1] << endl;
+				//stall += 2
+                //cout << stalls <<  endl;
                 return;
             }
             if(copy1+1 < program.size() && (program[copy1+1][0] == "sw") && (program[copy1+1][2] == reg1 || program[copy1+1][7] == reg1)){
-                stalls += 2;
+                if(rememberStalls[copy1+1] < 2){
+					rememberStalls[copy1+1] = 2;
+				}
+				//stall += 2
                 return;
             }
             if(copy2+1 < program.size() && (program[copy2+1][0] == "add" || program[copy2+1][0] == "slt") && (program[copy2+1][5] == reg1 || program[copy2+1][8] == reg1)){
-                stalls++;
+                rememberStalls[copy2+1] = 1;
+				//stalls++
                 return;
             }
             if(copy2+1 < program.size() && (program[copy2+1][0] == "lw") && (program[copy2+1][7] == reg1)){
-                stalls++;
+				rememberStalls[copy2+1] = 1;
+                //stalls++;
                 return;
             }
             if(copy2+1 < program.size() && (program[copy2+1][0] == "sw") && (program[copy2+1][2] == reg1 || program[copy2+1][7] == reg1)){
-                stalls++;
+                rememberStalls[copy2+1] = 1;
+				cout << "sw ki vachina,  rememberStalls[copy2+1]: "<< rememberStalls[copy2+1] << endl;
+				//stalls++;
                 return;
             }
+            // if(copy1+1 >= instrStart && (program[copy1-1][0] == "bne" || program[copy1-1][0] == "beq" || program[copy1-1][0] == "j")){
+            //     stalls++;
+            //     return;
+            // }
+
+            // if(copy2-1 >= instrStart && (program[copy2-1][0] == "add" || program[copy2-1][0] == "addi" || program[copy2-1][0] == "sub" || program[copy2-1][0] == "lw" || program[copy2-1][0] == "sub" || program[copy2-1][0] == "li" || program[copy2-1][0] == "slt" || program[copy2-1][0] == "la") && (program[copy2-1][2] == reg1 || program[copy2-1][2] == reg2)){
+            //     stalls++;
+            //     return;
+            // }
+
+        }
+
+		void checkDependencyWithForwarding(int i, string reg1, string operation){    // polymorphism
+            cout << "vachina" << endl;
+            int copy1 = i;
+            while(copy1+1 < program.size() && (program[copy1+1].size() == 0 || program[copy1+1].size() == 1) ){
+                copy1++;
+            }
+            int copy2 = copy1+1;            // check with spaces if this is correct
+            while(copy2+1 < program.size() && (program[copy2+1].size() == 0 || program[copy2+1].size() == 1)){
+                copy2++;
+            }
+            // add $s0, $s3, $s6
+            // sub $s7, $s9, $s9
+            // lw  $s0, 0($s8)
+            // sw  $s3, 0($s4)
+            // addi $s3, $s4, 9
+            // li $s6, 8
+            // bne $s9, $s9, label
+            // beq $s9, $s9, label
+            // j jump
+            // slt $t2 ,$t0 ,$t1
+            // la $s9, label
+            cout << "\ncopy1 " << copy1+1 << " " << copy2+1 << endl;
+            // cout << program[copy1+1][7] << " " << reg1 <<  endl; 
+            
+			if(reg1 == "null"){             // if bne (or) j just add a stall
+				rememberStalls[copy1+1] = 1;
+			}
+
+            if(operation == "lw"){
+                if(copy1+1 < program.size() && program[copy1+1][0] == "add" && (program[copy1+1][5] == reg1 || program[copy1+1][8] == reg1)){
+                    if(rememberStalls[copy1+1] == 0){
+					    rememberStalls[copy1+1]++;
+				    }
+                    return;
+                }
+                if(copy1+1 < program.size() && program[copy1+1][0] == "bne" && (program[copy1+1][2] == reg1 || program[copy1+1][5] == reg1)){
+                    if(rememberStalls[copy1+1] < 2){
+					    rememberStalls[copy1+1] = 2;
+				    }
+                    return;
+                }
+                if(copy2+1 < program.size() && program[copy2+1][0] == "bne" && (program[copy2+1][2] == reg1 || program[copy2+1][5] == reg1)){
+                    if(rememberStalls[copy2+1] == 0){
+					    rememberStalls[copy2+1]++;
+				    }
+                    return;
+                }    
+            }
+
+            if(operation == "add"){
+                if(copy1+1 < program.size() && program[copy1+1][0] == "bne" && (program[copy1+1][2] == reg1 || program[copy1+1][5] == reg1)){
+                    if(rememberStalls[copy1+1] == 0){
+					    rememberStalls[copy1+1]++;
+				    }
+                    return;
+                }
+            }
+
+            // if(copy1+1 < program.size() && (program[copy1+1][0] == "add" || program[copy1+1][0] == "slt") && (program[copy1+1][5] == reg1 || program[copy1+1][8] == reg1)){
+			// 	if(rememberStalls[copy1+1] < 2){
+			// 		rememberStalls[copy1+1] = 2;
+			// 	}
+			// 	//stall += 2
+            //     return;
+            // }
+            // if(copy1+1 < program.size() && (program[copy1+1][0] == "lw") && (program[copy1+1][7] == reg1)){
+            //     if(rememberStalls[copy1+1] < 2){
+			// 		rememberStalls[copy1+1] = 2;
+			// 	}
+			// 	cout << "lw ki vachina,  rememberStalls[copy1+1]: "<< rememberStalls[copy1+1] << endl;
+			// 	//stall += 2
+            //     //cout << stalls <<  endl;
+            //     return;
+            // }
+            // if(copy1+1 < program.size() && (program[copy1+1][0] == "sw") && (program[copy1+1][2] == reg1 || program[copy1+1][7] == reg1)){
+            //     if(rememberStalls[copy1+1] < 2){
+			// 		rememberStalls[copy1+1] = 2;
+			// 	}
+			// 	//stall += 2
+            //     return;
+            // }
+            // if(copy2+1 < program.size() && (program[copy2+1][0] == "add" || program[copy2+1][0] == "slt") && (program[copy2+1][5] == reg1 || program[copy2+1][8] == reg1)){
+            //     rememberStalls[copy2+1] = 1;
+			// 	//stalls++
+            //     return;
+            // }
+            // if(copy2+1 < program.size() && (program[copy2+1][0] == "lw") && (program[copy2+1][7] == reg1)){
+			// 	rememberStalls[copy2+1] = 1;
+            //     //stalls++;
+            //     return;
+            // }
+            // if(copy2+1 < program.size() && (program[copy2+1][0] == "sw") && (program[copy2+1][2] == reg1 || program[copy2+1][7] == reg1)){
+            //     rememberStalls[copy2+1] = 1;
+			// 	cout << "sw ki vachina,  rememberStalls[copy2+1]: "<< rememberStalls[copy2+1] << endl;
+			// 	//stalls++;
+            //     return;
+            // }
             // if(copy1+1 >= instrStart && (program[copy1-1][0] == "bne" || program[copy1-1][0] == "beq" || program[copy1-1][0] == "j")){
             //     stalls++;
             //     return;
