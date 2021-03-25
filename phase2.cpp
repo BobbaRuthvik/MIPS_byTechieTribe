@@ -14,6 +14,7 @@ class mipsSimulator {
 		vector<vector<string>> program; // entire program is stored line by line
         set<string> data_types = {".word", ".asciiz"};
 		int programCounter;				// to store current line
+        int PC = 0;
 		int TotalLines;				// total no. of commands in program(basically no. of lines)
         map<string, vector<int>> map_word;
         string memory[1024][2];  // arr[I][0] = value arr[][1] = type
@@ -22,7 +23,8 @@ class mipsSimulator {
         int current_mem_address = 0;
         int instrStart = 0;
         int stalls = 0;
-		vector<int> rememberStalls;
+		vector<vector<int>> rememberStalls; // stalls, pc value
+        vector<int> instructionStalls;
 	public:
 		mipsSimulator(string filePath) {            // constructor checks size
             std::ifstream in(filePath, std::ifstream::ate | std::ifstream::binary);
@@ -38,10 +40,14 @@ class mipsSimulator {
 			string lineInput;
 			ifstream file(filePath);      // File path is basically file name including .txt(I think both file and program needs to be in same directory)
 			if (file.is_open()) {			// opens file and check if it's there or not
+                vector<int> temp;
+                temp.push_back(0);
+                temp.push_back(0);
 				while (getline(file, lineInput)) {
 					TotalLines++;
 					program.push_back(subVector(lineInput));		// now entire program is stored line by line, no file business anymore
-					rememberStalls.push_back(0);
+					rememberStalls.push_back(temp);
+                    instructionStalls.push_back(0);
 				}
 				file.close();
                 cout << "Code:" << endl;
@@ -234,6 +240,9 @@ class mipsSimulator {
         // j 3
 
         void execute(){                 // Executes program
+            cout << "\n1- Pipeline with forwarding\n2- Pipeline without forwarding" << endl;;
+            int flag;
+            cin >> flag;
             cout << "\nConsole : \n";
             find_data();
             int i;
@@ -263,28 +272,84 @@ class mipsSimulator {
             }
             programCounter = ++i;
             instrStart = i;
+            PC = programCounter;
+            // cout << "initial PC : " << PC << endl;
             for(i=programCounter; i<program.size(); i++){
+                for(int j=0; j<rememberStalls.size(); j++){
+                    if((PC - rememberStalls[j][1]) >= 2){               // rememberStalls[i][0] -> stalls, rememberStalls[i][1] -> i
+                        rememberStalls[j][0] = 0;
+                    }
+                }
                 if(program[i].size()!=0){
                     string instruction = program[i][0];
                     if(instruction == "add"){
                         add(program[i], i);
-                        //checkDependency(i, program[i][2]);
-                        checkDependencyWithForwarding(i, program[i][2], program[i][0]);
+                        switch (flag)
+                        {
+                        case 1:
+                            checkDependencyWithForwarding(i, program[i][2], program[i][0], PC);
+                            break;
+
+                        case 2:
+                            checkDependencyWithoutForwarding(i, program[i][2], PC);
+                            break;
+                        
+                        default:
+                            cout << "Invalid input, Enter either 1 or 2" << endl;
+                            exit(1);
+                        }
                     }
                     else if(instruction == "addi"){
                         addi(program[i], i);
-                        // checkDependency(i, program[i][5], "null");
+                        switch (flag)
+                        {
+                        case 1:
+                            checkDependencyWithForwarding(i, program[i][2], program[i][0], PC);
+                            break;
+
+                        case 2:
+                            checkDependencyWithoutForwarding(i, program[i][2], PC);
+                            break;
+                        
+                        default:
+                            cout << "Invalid input, Enter either 1 or 2" << endl;
+                            exit(1);
+                        }
                     }
                     else if(instruction == "sub"){
                         sub(program[i], i);
-                        // if(program[i].size() == 9)
-                        //     // checkDependency(i, program[i][5], program[i][8]);
-                        // else
-                        //     checkDependency(i, program[i][5], "null");
+                        switch (flag)
+                        {
+                        case 1:
+                            checkDependencyWithForwarding(i, program[i][2], program[i][0], PC);
+                            break;
+
+                        case 2:
+                            checkDependencyWithoutForwarding(i, program[i][2], PC);
+                            break;
+                        
+                        default:
+                            cout << "Invalid input, Enter either 1 or 2" << endl;
+                            exit(1);
+                        }
                     }
                     else if(instruction == "j"){
                         i =  j(program[i], i);
                         programCounter = i;
+                        switch (flag)
+                        {
+                        case 1:
+                            checkDependencyWithForwarding(i, "null", program[i][0], PC);
+                            break;
+
+                        case 2:
+                            checkDependencyWithoutForwarding(i, "null", PC);
+                            break;
+                        
+                        default:
+                            cout << "Invalid input, Enter either 1 or 2" << endl;
+                            exit(1);
+                        }
                     }
                     else if(instruction == "bne"){
                         int tempi;
@@ -297,8 +362,20 @@ class mipsSimulator {
                             i = tempi;
                             programCounter = i;
                         }
-                        // checkDependency(i, program[i][2], program[i][5]);
-                        checkDependencyWithForwarding(i, "null", program[i][0]);
+                        switch (flag)
+                        {
+                        case 1:
+                            checkDependencyWithForwarding(i, "null", program[i][0], PC);
+                            break;
+
+                        case 2:
+                            checkDependencyWithoutForwarding(i, "null", PC);
+                            break;
+                        
+                        default:
+                            cout << "Invalid input, Enter either 1 or 2" << endl;
+                            exit(1);
+                        }
                     }
                     else if(instruction == "beq"){
                         int tempi;
@@ -310,26 +387,91 @@ class mipsSimulator {
                         if(tempi != -1){
                             i = tempi;
                             programCounter = i;
+                        }switch (flag)
+                        {
+                        case 1:
+                            checkDependencyWithForwarding(i, "null", program[i][0], PC);
+                            break;
+
+                        case 2:
+                            checkDependencyWithoutForwarding(i, "null", PC);
+                            break;
+                        
+                        default:
+                            cout << "Invalid input, Enter either 1 or 2" << endl;
+                            exit(1);
                         }
-                        // checkDependency(i, program[i][2], program[i][5]);
                     }
                     else if(instruction == "lw"){
                         lw(program[i], i);
-                        //checkDependency(i, program[i][2]);
-                        checkDependencyWithForwarding(i, program[i][2], program[i][0]);
+                        switch (flag)
+                        {
+                        case 1:
+                            checkDependencyWithForwarding(i, program[i][2], program[i][0], PC);
+                            break;
+
+                        case 2:
+                            checkDependencyWithoutForwarding(i, program[i][2], PC);
+                            break;
+                        
+                        default:
+                            cout << "Invalid input, Enter either 1 or 2" << endl;
+                            exit(1);
+                        }
                     }
                     else if(instruction == "sw"){
                         sw(program[i], i);
                     }
                     else if(instruction == "li"){
                         li(program[i], i);
+                        // switch (flag)
+                        // {
+                        // case 1:
+                        //     // checkDependencyWithForwarding(i, program[i][2], program[i][0], PC);
+                        //     break;
+
+                        // case 2:
+                        //     checkDependencyWithoutForwarding(i, program[i][2], PC);
+                        //     break;
+                        
+                        // default:
+                        //     cout << "Invalid input, Enter either 1 or 2" << endl;
+                        //     exit(1);
+                        // }
                     }
                     else if(instruction == "la"){
                         la(program[i], i);
+                        // switch (flag)
+                        // {
+                        // case 1:
+                        //     // checkDependencyWithForwarding(i, program[i][2], program[i][0], PC);
+                        //     break;
+
+                        // case 2:
+                        //     checkDependencyWithoutForwarding(i, program[i][2], PC);
+                        //     break;
+                        
+                        // default:
+                        //     cout << "Invalid input, Enter either 1 or 2" << endl;
+                        //     exit(1);
+                        // }
                     }
                     else if(instruction == "slt"){
                         slt(program[i], i);
-                        // checkDependency(i, program[i][5], program[i][8]);
+                        switch (flag)
+                        {
+                        case 1:
+                            checkDependencyWithForwarding(i, program[i][2], program[i][0], PC);
+                            break;
+
+                        case 2:
+                            checkDependencyWithoutForwarding(i, program[i][2], PC);
+                            break;
+                        
+                        default:
+                            cout << "Invalid input, Enter either 1 or 2" << endl;
+                            exit(1);
+                        }
                     }
                     else if(instruction == "syscall"){
                         syscall(i);
@@ -342,12 +484,14 @@ class mipsSimulator {
                             exit(1);
                         } 
                     }
+                    PC++;
                 }
                 programCounter++;  
                 if(i+1 == program.size()){ // assumption :  there must be a syscall for exit else there will be an error
                     cout << "\nERROR : No exit call" << endl;
                     exit(1);
                 } 
+                
             }
             registerDisplay();
             cout << "----------" << endl;
@@ -577,8 +721,13 @@ class mipsSimulator {
                 cout << "--------------------" << endl;
                 cout << "Memory: " << endl;
                 Memdisplay();
+                
 				for(int i=0; i<program.size(); i++){
-					cout << rememberStalls[i] << " ";
+					cout << rememberStalls[i][0] << " ";
+				}
+                cout << endl;
+                for(int i=0; i<program.size(); i++){
+					cout << i+1 << "\t: " << instructionStalls[i] << endl;
 				}
 				cout << endl;
                 cout << "\nStalls : " << stalls << endl;
@@ -604,7 +753,7 @@ class mipsSimulator {
         }
 
         // check psuedo instructions, now they are treated as single instruction
-        void checkDependency(int i, string reg1){    // polymorphism
+        void checkDependencyWithoutForwarding(int i, string reg1, int pc){    // polymorphism
             //cout << "vachina" << endl;
             int copy1 = i;
             while(copy1+1 < program.size() && (program[copy1+1].size() == 0 || program[copy1+1].size() == 1) ){
@@ -630,90 +779,137 @@ class mipsSimulator {
             
 			
             // copy1 ........
+            // cout << copy1+1 << " " << program.size() << " " << reg1 << " " <<  rememberStalls[copy1+1][0] << endl;
             if(copy1+1 < program.size() && reg1 == "null"){         // if current line is bne, beq or j
-                if(rememberStalls[copy1+1] < 1){
-					rememberStalls[copy1+1] = 1;
-				}
+                rememberStalls[copy1+1][0] = 1;
+                rememberStalls[copy1+1][1] = pc;
+                instructionStalls[copy1+1]++;
+                stalls++;
                 return;
             }
             if(copy1+1 < program.size() && (program[copy1+1][0] == "add" || program[copy1+1][0] == "slt") && (program[copy1+1][5] == reg1 || program[copy1+1][8] == reg1)){
-				if(rememberStalls[copy1+1] < 2){
-					rememberStalls[copy1+1] = 2;
+				if(rememberStalls[copy1+1][0] < 2){
+                    rememberStalls[copy1+1][0] == 0 ? stalls +=2: stalls++;
+                    rememberStalls[copy1+1][0] == 0 ? instructionStalls[copy1+1] +=2 : instructionStalls[copy1+1]++;
+					rememberStalls[copy1+1][0] = 2;
+                    rememberStalls[copy1+1][1] = pc;
 				}
                 return;
             }
             if(copy1+1 < program.size() && program[copy1+1][0] == "sub"){
                 if(program[copy1+1].size() == 9 && (program[copy1+1][5] == reg1 || program[copy1+1][8] == reg1)){
-                    if(rememberStalls[copy1+1] < 2){
-					    rememberStalls[copy1+1] = 2;
+                    if(rememberStalls[copy1+1][0] < 2){
+                        rememberStalls[copy1+1][0] == 0 ? stalls +=2 : stalls++;
+                        rememberStalls[copy1+1][0] == 0 ? instructionStalls[copy1+1] +=2 : instructionStalls[copy1+1]++;
+					    rememberStalls[copy1+1][0] = 2;
+                        rememberStalls[copy1+1][1] = pc;
 				    }
                 }
 				if(program[copy1+1].size() == 8 && program[copy1+1][5] == reg1){
-                    if(rememberStalls[copy1+1] < 2){
-					    rememberStalls[copy1+1] = 2;
+                    if(rememberStalls[copy1+1][0] < 2){
+                        rememberStalls[copy1+1][0] == 0 ? stalls +=2 : stalls++;
+                        rememberStalls[copy1+1][0] == 0 ? instructionStalls[copy1+1] +=2 : instructionStalls[copy1+1]++;
+					    rememberStalls[copy1+1][0] = 2;
+                        rememberStalls[copy1+1][1] = pc;
 				    }
                 }
                 return;
             }
             if(copy1+1 < program.size() && program[copy1+1][0] == "addi" && program[copy1+1][5] == reg1){
-				if(rememberStalls[copy1+1] < 2){
-					rememberStalls[copy1+1] = 2;
+				if(rememberStalls[copy1+1][0] < 2){
+                    rememberStalls[copy1+1][0] == 0 ? stalls +=2 : stalls++;
+                    rememberStalls[copy1+1][0] == 0 ? instructionStalls[copy1+1] +=2 : instructionStalls[copy1+1]++;
+					rememberStalls[copy1+1][0] = 2;
+                    rememberStalls[copy1+1][1] = pc;
 				}
                 return;
             }
             if(copy1+1 < program.size() && (program[copy1+1][0] == "lw") && (program[copy1+1][7] == reg1)){
-                if(rememberStalls[copy1+1] < 2){
-					rememberStalls[copy1+1] = 2;
+                if(rememberStalls[copy1+1][0] < 2){
+                    rememberStalls[copy1+1][0] == 0 ? stalls +=2 : stalls++;
+                    rememberStalls[copy1+1][0] == 0 ? instructionStalls[copy1+1] +=2 : instructionStalls[copy1+1]++;
+					rememberStalls[copy1+1][0] = 2;
+                    rememberStalls[copy1+1][1] = pc;
 				}
                 return;
             }
             if(copy1+1 < program.size() && (program[copy1+1][0] == "sw") && (program[copy1+1][2] == reg1 || program[copy1+1][7] == reg1)){
-                if(rememberStalls[copy1+1] < 2){
-					rememberStalls[copy1+1] = 2;
+                if(rememberStalls[copy1+1][0] < 2){
+                    rememberStalls[copy1+1][0] == 0 ? stalls +=2 : stalls++;
+                    rememberStalls[copy1+1][0] == 0 ? instructionStalls[copy1+1] +=2 : instructionStalls[copy1+1]++;
+					rememberStalls[copy1+1][0] = 2;
+                    rememberStalls[copy1+1][1] = pc;
 				}
                 return;
             }
-            if(copy1+1 < program.size() && (program[copy1+1][0] == "bne" || program[copy1+1][0] == "beq") && (program[copy1+1][2] == reg1 || program[copy1+1][5] == reg1)){
-				if(rememberStalls[copy1+1] < 2){
-					rememberStalls[copy1+1] = 2;
-				}
+            if(copy1+1 < program.size() && (program[copy1+1][0] == "bne" || program[copy1+1][0] == "beq" || program[copy1+1][0] == "j")){
+                if(program[copy1+1][0] == "j"){
+                    return;
+                }
+				if((program[copy1+1][2] == reg1 || program[copy1+1][5] == reg1)){
+                    if(rememberStalls[copy1+1][0] < 2){
+                        rememberStalls[copy1+1][0] == 0 ? stalls +=2 : stalls++;
+                        rememberStalls[copy1+1][0] == 0 ? instructionStalls[copy1+1] +=2 : instructionStalls[copy1+1]++;
+                        rememberStalls[copy1+1][0] = 2;
+                        rememberStalls[copy1+1][1] = pc;
+                    }
+				} 
                 return;
             }
             // copy2 ......
             if(copy2+1 < program.size() && (program[copy2+1][0] == "add" || program[copy2+1][0] == "slt") && (program[copy2+1][5] == reg1 || program[copy2+1][8] == reg1)){
-                rememberStalls[copy2+1] = 1;
+                stalls++;
+                instructionStalls[copy2+1]++;
+                rememberStalls[copy2+1][0] = 1;
+                rememberStalls[copy2+1][1] = pc;
                 return;
             }
             if(copy2+1 < program.size() && program[copy2+1][0] == "sub"){
-                if(program[copy2+1].size() == 9 && (program[copy2+1][5] == reg1 || program[copy2+1][8] == reg1))
-                    rememberStalls[copy2+1] = 1;
-                if(program[copy2+1].size() == 8 && program[copy2+1][5] == reg1)
-                    rememberStalls[copy2+1] = 1;    
+                if(program[copy2+1].size() == 9 && (program[copy2+1][5] == reg1 || program[copy2+1][8] == reg1)){
+                    stalls++;
+                    instructionStalls[copy2+1]++;
+                    rememberStalls[copy2+1][0] = 1;
+                    rememberStalls[copy2+1][1] = pc;
+                }
+                if(program[copy2+1].size() == 8 && program[copy2+1][5] == reg1){
+                    stalls++;
+                    instructionStalls[copy2+1]++;
+                    rememberStalls[copy2+1][0] = 1;    
+                    rememberStalls[copy2+1][1] = pc;
+                }
                 return;
             }
             if(copy2+1 < program.size() && program[copy2+1][0] == "addi" && program[copy2+1][5] == reg1){
-				if(rememberStalls[copy2+1] < 1){
-					rememberStalls[copy2+1] = 1;
-				}
+                stalls++;
+                instructionStalls[copy2+1]++;
+                rememberStalls[copy2+1][0] = 1;
+                rememberStalls[copy2+1][1] = pc;
                 return;
             }
             if(copy2+1 < program.size() && (program[copy2+1][0] == "lw") && (program[copy2+1][7] == reg1)){
-				rememberStalls[copy2+1] = 1;
+                stalls++;
+                instructionStalls[copy2+1]++;
+				rememberStalls[copy2+1][0] = 1;
+                rememberStalls[copy2+1][1] = pc;
                 return;
             }
             if(copy2+1 < program.size() && (program[copy2+1][0] == "sw") && (program[copy2+1][2] == reg1 || program[copy2+1][7] == reg1)){
-                rememberStalls[copy2+1] = 1;
+                rememberStalls[copy2+1][0] = 1;
+                rememberStalls[copy2+1][1] = pc;
+                instructionStalls[copy2+1]++;
+                stalls++;
                 return;
             }
-            if(copy2+1 < program.size() && (program[copy2+1][0] == "bne" || program[copy2+1][0] == "beq") && (program[copy2+1][2] == reg1 || program[copy2+1][5] == reg1)){
-				if(rememberStalls[copy2+1] < 1){
-					rememberStalls[copy2+1] = 1;
-				}
+            if(copy2+1 < program.size() && (program[copy2+1][0] == "bne" || program[copy2+1][0] == "beq") && (program[copy2+1][2] == reg1 || program[copy2+1][5] == reg1)){               
+                rememberStalls[copy2+1][0] = 1;
+                rememberStalls[copy2+1][1] = pc;
+                instructionStalls[copy2+1]++;
+                stalls++;
                 return;
             }
         }
 
-		void checkDependencyWithForwarding(int i, string reg1, string operation){    
+		void checkDependencyWithForwarding(int i, string reg1, string operation, int PC){    
             // cout << "vachina" << endl;
             int copy1 = i;
             while(copy1+1 < program.size() && (program[copy1+1].size() == 0 || program[copy1+1].size() == 1) ){
@@ -738,59 +934,86 @@ class mipsSimulator {
             // cout << program[copy1+1][7] << " " << reg1 <<  endl; 
             
 			if(reg1 == "null"){             // if bne,beq (or) j just add a stall
-				rememberStalls[copy1+1] = 1;
+				rememberStalls[copy1+1][0] = 1;
+                rememberStalls[copy1+1][1] = PC;
+                instructionStalls[copy1+1]++;
+                stalls++;
                 return;
 			}
 
             if(operation == "lw"){
                 // copy1 ..........
                 if(copy1+1 < program.size() && (program[copy1+1][0] == "add" || program[copy1+1][0] == "slt") && (program[copy1+1][5] == reg1 || program[copy1+1][8] == reg1)){
-                    if(rememberStalls[copy1+1] == 0){
-					    rememberStalls[copy1+1]++;
+                    if(rememberStalls[copy1+1][0] == 0){
+                        rememberStalls[copy1+1][0] = 1;
+                        rememberStalls[copy1+1][1] = PC;
+                        instructionStalls[copy1+1]++;
+                        stalls++;
 				    }
                     return;
                 }
                 if(copy1+1 < program.size() && program[copy1+1][0] == "sub") {
                     if(program[copy1+1].size()== 9 && (program[copy1+1][5] == reg1 || program[copy1+1][8] == reg1)){        // generic sub operation
-                        if(rememberStalls[copy1+1] == 0){
-					        rememberStalls[copy1+1]++;
+                        if(rememberStalls[copy1+1][0] == 0){
+					        rememberStalls[copy1+1][0] = 1;
+                            rememberStalls[copy1+1][1] = PC;
+                            instructionStalls[copy1+1]++;
+                            stalls++;
 				        }
                     }
                     if(program[copy1+1].size()== 8 && program[copy1+1][5] == reg1){           // immediate sub operation
-                        if(rememberStalls[copy1+1] == 0){
-					        rememberStalls[copy1+1]++;
+                        if(rememberStalls[copy1+1][0] == 0){
+					        rememberStalls[copy1+1][0] = 1;
+                            rememberStalls[copy1+1][1] = PC;
+                            instructionStalls[copy1+1]++;
+                            stalls++;
 				        }
                     }
                     return;
                 }
                 if(copy1+1 < program.size() && program[copy1+1][0] == "addi" && program[copy1+1][5] == reg1){
-                    if(rememberStalls[copy1+1] == 0){
-					    rememberStalls[copy1+1]++;
+                    if(rememberStalls[copy1+1][0] == 0){
+					    rememberStalls[copy1+1][0] = 1;
+                        rememberStalls[copy1+1][1] = PC;
+                        instructionStalls[copy1+1]++;
+                        stalls++;
 				    }
                     return;
                 }
                 if(copy1+1 < program.size() && program[copy1+1][0] == "sw" && program[copy1+1][7] == reg1){
-                    if(rememberStalls[copy1+1] < 1){
-					    rememberStalls[copy1+1]++;
+                    if(rememberStalls[copy1+1][0] < 1){
+					    rememberStalls[copy1+1][0] = 1;
+                        rememberStalls[copy1+1][1] = PC;
+                        instructionStalls[copy1+1]++;
+                        stalls++;
 				    }
                     return;
                 }
                 if(copy1+1 < program.size() && program[copy1+1][0] == "lw" && program[copy1+1][7] == reg1){
-                    if(rememberStalls[copy1+1] < 1){
-					    rememberStalls[copy1+1]++;
+                    if(rememberStalls[copy1+1][0] < 1){
+					    rememberStalls[copy1+1][0] = 1;
+                        rememberStalls[copy1+1][1] = PC;
+                        instructionStalls[copy1+1]++;
+                        stalls++;
 				    }
                     return;
                 }
                 if(copy1+1 < program.size() && (program[copy1+1][0] == "bne" || program[copy1+1][0] == "beq") && (program[copy1+1][2] == reg1 || program[copy1+1][5] == reg1)){
-                    if(rememberStalls[copy1+1] < 2){
-					    rememberStalls[copy1+1] = 2;
+                    if(rememberStalls[copy1+1][0] < 2){
+					    rememberStalls[copy1+1][0] == 0 ? stalls +=2 : stalls++;
+                        rememberStalls[copy1+1][0] == 0 ? instructionStalls[copy1+1] +=2 : instructionStalls[copy1+1]++;
+                        rememberStalls[copy1+1][0] = 2;
+                        rememberStalls[copy1+1][1] = PC;
 				    }
                     return;
                 }
                 // copy2 ..........
                 if(copy2+1 < program.size() && (program[copy2+1][0] == "bne" || program[copy2+1][0] == "beq") && (program[copy2+1][2] == reg1 || program[copy2+1][5] == reg1)){
-                    if(rememberStalls[copy2+1] == 0){
-					    rememberStalls[copy2+1]++;
+                    if(rememberStalls[copy2+1][0] == 0){
+					    rememberStalls[copy2+1][0] = 1;
+                        rememberStalls[copy2+1][1] = PC;
+                        instructionStalls[copy2+1]++;
+                        stalls++;
 				    }
                     return;
                 }       
@@ -799,8 +1022,11 @@ class mipsSimulator {
             if(operation == "add" || operation == "slt"){
                 // copy1 .......
                 if(copy1+1 < program.size() && (program[copy1+1][0] == "bne" || program[copy1+1][0] == "beq") && (program[copy1+1][2] == reg1 || program[copy1+1][5] == reg1)){
-                    if(rememberStalls[copy1+1] == 0){
-					    rememberStalls[copy1+1]++;
+                    if(rememberStalls[copy1+1][0] == 0){
+					    rememberStalls[copy1+1][0] = 1;
+                        rememberStalls[copy1+1][1] = PC;
+                        instructionStalls[copy1+1]++;
+                        stalls++;
 				    }
                     return;
                 }
@@ -809,15 +1035,21 @@ class mipsSimulator {
                 // copy1 .......
                 if(program[copy1+1].size() == 9){
                     if(copy1+1 < program.size() && (program[copy1+1][0] == "bne" || program[copy1+1][0] == "beq") && (program[copy1+1][2] == reg1 || program[copy1+1][5] == reg1)){
-                        if(rememberStalls[copy1+1] == 0){
-					        rememberStalls[copy1+1]++;
+                        if(rememberStalls[copy1+1][0] == 0){
+					        rememberStalls[copy1+1][0] = 1;
+                            rememberStalls[copy1+1][1] = PC;
+                            instructionStalls[copy1+1]++;
+                            stalls++;
 				        }
                     }
                 }
                 if(program[copy1+1].size() == 8){
                     if(copy1+1 < program.size() && (program[copy1+1][0] == "bne" || program[copy1+1][0] == "beq") && program[copy1+1][2] == reg1){
-                        if(rememberStalls[copy1+1] == 0){
-					        rememberStalls[copy1+1]++;
+                        if(rememberStalls[copy1+1][0] == 0){
+					        rememberStalls[copy1+1][0] = 1;
+                            rememberStalls[copy1+1][1] = PC;
+                            instructionStalls[copy1+1]++;
+                            stalls++;
 				        }
                     }
                 }
@@ -825,9 +1057,12 @@ class mipsSimulator {
             }
             if(operation == "addi"){
                 // copy1 .......
-                if(copy1+1 < program.size() && (program[copy1+1][0] == "bne" || program[copy1+1][0] == "beq") && program[copy1+1][2] == reg1){
-                    if(rememberStalls[copy1+1] == 0){
-					    rememberStalls[copy1+1]++;
+                if(copy1+1 < program.size() && (program[copy1+1][0] == "bne" || program[copy1+1][0] == "beq") && (program[copy1+1][2] == reg1 || program[copy1+1][5] == reg1)){
+                    if(rememberStalls[copy1+1][0] == 0){
+					    rememberStalls[copy1+1][0] = 1;
+                        rememberStalls[copy1+1][1] = PC;
+                        instructionStalls[copy1+1]++;
+                        stalls++;
 				    }
                     return;
                 }
@@ -963,3 +1198,5 @@ int main() {
     } 
 	return 0;
 }
+
+// check error due to labels
