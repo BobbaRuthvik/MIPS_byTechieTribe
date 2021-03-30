@@ -25,6 +25,7 @@ class mipsSimulator {
         int stalls = 0;
 		vector<vector<int>> rememberStalls; // stalls, pc value
         vector<int> instructionStalls;
+        int idealClockCycle = 4;
 	public:
 		mipsSimulator(string filePath) {            // constructor checks size
             std::ifstream in(filePath, std::ifstream::ate | std::ifstream::binary);
@@ -422,39 +423,22 @@ class mipsSimulator {
                     else if(instruction == "sw"){
                         sw(program[i], i);
                     }
-                    else if(instruction == "li"){
-                        li(program[i], i);
-                        // switch (flag)
-                        // {
-                        // case 1:
-                        //     // checkDependencyWithForwarding(i, program[i][2], program[i][0], PC);
-                        //     break;
-
-                        // case 2:
-                        //     checkDependencyWithoutForwarding(i, program[i][2], PC);
-                        //     break;
-                        
-                        // default:
-                        //     cout << "Invalid input, Enter either 1 or 2" << endl;
-                        //     exit(1);
-                        // }
-                    }
                     else if(instruction == "la"){
                         la(program[i], i);
-                        // switch (flag)
-                        // {
-                        // case 1:
-                        //     // checkDependencyWithForwarding(i, program[i][2], program[i][0], PC);
-                        //     break;
+                        switch (flag)
+                        {
+                        case 1:
+                            checkDependencyWithForwarding(i, program[i][2], program[i][0], PC);
+                            break;
 
-                        // case 2:
-                        //     checkDependencyWithoutForwarding(i, program[i][2], PC);
-                        //     break;
+                        case 2:
+                            checkDependencyWithoutForwarding(i, program[i][2], PC);
+                            break;
                         
-                        // default:
-                        //     cout << "Invalid input, Enter either 1 or 2" << endl;
-                        //     exit(1);
-                        // }
+                        default:
+                            cout << "Invalid input, Enter either 1 or 2" << endl;
+                            exit(1);
+                        }
                     }
                     else if(instruction == "slt"){
                         slt(program[i], i);
@@ -484,6 +468,7 @@ class mipsSimulator {
                             exit(1);
                         } 
                     }
+                    idealClockCycle++;
                     PC++;
                 }
                 programCounter++;  
@@ -721,16 +706,18 @@ class mipsSimulator {
                 cout << "--------------------" << endl;
                 cout << "Memory: " << endl;
                 Memdisplay();
-                
-				for(int i=0; i<program.size(); i++){
-					cout << rememberStalls[i][0] << " ";
-				}
-                cout << endl;
+                cout << "--------------------" << endl;
+                cout << "Number of stalls for each instruction: " << endl;
                 for(int i=0; i<program.size(); i++){
-					cout << i+1 << "\t: " << instructionStalls[i] << endl;
+					cout << "\t" <<i+1 << "\t: " << instructionStalls[i] << endl;
 				}
 				cout << endl;
+                idealClockCycle += 1;        // for last syscall instruction
                 cout << "\nStalls : " << stalls << endl;
+                cout << "Ideal clock cycles : " << idealClockCycle << endl;
+                cout << "clock cycles : " << stalls+idealClockCycle << endl;
+                double ipc = (double) (idealClockCycle - 4)/ (stalls+idealClockCycle);
+                cout << "IPC: " << ipc << endl;
                 exit(1);
             }
             else if(Register.find("v0") -> second == 1){
@@ -941,7 +928,7 @@ class mipsSimulator {
                 return;
 			}
 
-            if(operation == "lw"){
+            if(operation == "lw" || operation == "la"){
                 // copy1 ..........
                 if(copy1+1 < program.size() && (program[copy1+1][0] == "add" || program[copy1+1][0] == "slt") && (program[copy1+1][5] == reg1 || program[copy1+1][8] == reg1)){
                     if(rememberStalls[copy1+1][0] == 0){
@@ -1067,6 +1054,7 @@ class mipsSimulator {
                     return;
                 }
             }
+
         }
 
         void find_data(){
