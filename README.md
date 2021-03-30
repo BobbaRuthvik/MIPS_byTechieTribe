@@ -22,4 +22,4 @@ Code in phase1.cpp(latest update).
 Code in phase2.cpp(latest update).
 
 1. psuedo instruction la is assumned as a single instruction( Asummed number to be stored in register is less than 2^16 )
-
+2. We assumed no branch predictors, and therefore after every branch instruction there will be one stall.
