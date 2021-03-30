@@ -18,3 +18,8 @@ Code in phase1.cpp(latest update).
 12. for lw/sw, we can load/store if address fetched is multiple of 4.
 13. .data can only be written at start of program and only one .data is considered.
 14. Data(values, array names, etc.) in same line as label(for .data segment). // e.g label_name: .word  1,2,4,6
+
+Code in phase2.cpp(latest update).
+
+1. psuedo instruction la is assumned as a single instruction( Asummed number to be stored in register is less than 2^16 )
+
