@@ -1,4 +1,5 @@
 https://docs.google.com/spreadsheets/d/12PiLKiLYvmdKcy4POBE31EGX6sucR8nDNE4RUI8ccZA/edit?usp=sharing
+A video quick peek: https://drive.google.com/file/d/1FPbimk58vlMeyfudLroX6Ci86oybfFcg/view?usp=sharing
 # MIPS_byTechieTribe
 
 GUI interface code in "mips" folder(latest update).(PHASE - 1)
