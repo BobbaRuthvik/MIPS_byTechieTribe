@@ -1144,5 +1144,8 @@ void MainWindow::on_pushButton_clicked()
     }
     ui->textEdit_2->setPlainText(QString::fromStdString(t));
 }
+void MainWindow::on_checkBox_stateChanged(int arg1)
+{
 
+}
 
