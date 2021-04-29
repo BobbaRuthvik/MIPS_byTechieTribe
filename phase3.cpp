@@ -21,6 +21,98 @@ public:
     }
 };
 
+class Cache
+{
+public:
+    int numberOfLevels;
+    int cache1Size;
+    int cache2Size;
+
+    int blockSize1;
+    int blockSize2;
+
+    int associativity1;
+    int associativity2;
+
+    int cache1Latency;
+    int cache2Latency;
+
+    int memoryLatency;
+
+    int numOfBlocks1;
+    int numOfBlocks2;
+
+    int numOfSets1;
+    int numOfSets2;
+
+    int offset1;
+    int offset2;
+
+    int index1;
+    int index2;
+
+    int cacheMisses1 = 0;
+    int cacheMisses2 = 0;
+
+    int totalCacheAccess1 = 0;
+    int totalCacheAccess2 = 0;
+
+    vector<multimap<int, Node>> set1Array; // multimap is used because initially all tags were initialized to same value
+    vector<multimap<int, Node>> set2Array;
+
+    // public:
+    Cache(int cache1Size, int cache2Size, int blockSize1, int blockSize2, int associativity1, int associativity2, int cache1Latency, int cache2Latency, int memoryLatency)
+    {
+        this->cache1Size = cache1Size;
+        this->cache2Size = cache2Size;
+
+        this->blockSize1 = blockSize1;
+        this->blockSize2 = blockSize2;
+
+        this->associativity1 = associativity1;
+        this->associativity2 = associativity2;
+
+        this->cache1Latency = cache1Latency;
+        this->cache2Latency = cache2Latency;
+
+        this->memoryLatency = memoryLatency;
+
+        numOfBlocks1 = cache1Size / blockSize1;
+        numOfBlocks2 = cache2Size / blockSize2;
+
+        numOfSets1 = numOfBlocks1 / associativity1;
+        numOfSets2 = numOfBlocks2 / associativity2;
+
+        offset1 = log2(blockSize1);
+        offset2 = log2(blockSize2);
+
+        index1 = log2(numOfSets1);
+        index2 = log2(numOfSets2);
+
+        for (int i = 0; i < numOfSets1; i++)
+        {
+            multimap<int, Node> mp;
+            for (int j = 0; j < associativity1; j++)
+            {
+                Node node(-1);
+                mp.insert(make_pair(0, node));
+            }
+            set1Array.push_back(mp);
+        }
+
+        for (int i = 0; i < numOfSets2; i++)
+        {
+            multimap<int, Node> mp;
+            for (int j = 0; j < associativity2; j++)
+            {
+                Node node(-1);
+                mp.insert(make_pair(0, node));
+            }
+            set2Array.push_back(mp);
+        }
+    }
+};
+
 class mipsSimulator
 {
 private:
@@ -37,71 +129,17 @@ private:
     map<string, int> labels;            // for storing address associated with label
     int current_mem_address = 0;
     int instrStart = 0;
-    int stalls = 0;
+    int stallCycles = 0;
     vector<vector<int>> rememberStalls; // stalls, pc value
     vector<int> instructionStalls;
     int idealClockCycle = 4;
 
-    int cache1Size;
-    int cache2Size;
-    int blockSize;
-    int associativity;
-    int cache1Latency;
-    int cache2Latency;
-    int memoryLatency;
-    int blocks1;
-    int sets1;
-    int blocks2;
-    int sets2;
-    int offset;
-    int index1;
-    int index2;
-    int cacheMisses = 0;
-
-    vector<multimap<int, Node>> set1Array;
-    vector<multimap<int, Node>> set2Array;
+    Cache *cache;
 
 public:
-    mipsSimulator(string filePath, int cache1Size, int cache2Size, int blockSize, int associativity, int cache1Latency, int cache2Latency, int memoryLatency)
+    mipsSimulator(string filePath, int cache1Size, int cache2Size, int blockSize1, int blockSize2, int associativity1, int associativity2, int cache1Latency, int cache2Latency, int memoryLatency)
     { // constructor checks size
-        this->cache1Size = cache1Size;
-        this->cache2Size = cache2Size;
-        this->blockSize = blockSize;
-        this->associativity = associativity;
-        this->cache1Latency = cache1Latency;
-        this->cache2Latency = cache2Latency;
-        this->memoryLatency = memoryLatency;
-
-        blocks1 = cache1Size / blockSize;
-        blocks2 = cache2Size / blockSize;
-        sets1 = blocks1 / associativity;
-        sets2 = blocks2 / associativity;
-
-        offset = log2(blockSize);
-        index1 = log2(sets1);
-        index2 = log2(sets2);
-
-        for (int i = 0; i < sets1; i++)
-        {
-            multimap<int, Node> mp;
-            for (int j = 0; j < associativity; j++)
-            {
-                Node node(-1);
-                mp.insert(make_pair(0, node));
-            }
-            set1Array.push_back(mp);
-        }
-
-        for (int i = 0; i < sets2; i++)
-        {
-            multimap<int, Node> mp;
-            for (int j = 0; j < associativity; j++)
-            {
-                Node node(-1);
-                mp.insert(make_pair(0, node));
-            }
-            set2Array.push_back(mp);
-        }
+        cache = new Cache(cache1Size, cache2Size, blockSize1, blockSize2, associativity1, associativity2, cache1Latency, cache2Latency, memoryLatency);
 
         std::ifstream in(filePath, std::ifstream::ate | std::ifstream::binary);
         int a = in.tellg();
@@ -364,7 +402,6 @@ public:
     void execute()
     { // Executes program
         cout << "\n1- Pipeline with forwarding\n2- Pipeline without forwarding" << endl;
-        ;
         int flag;
         cin >> flag;
         cout << "\nConsole : \n";
@@ -407,7 +444,6 @@ public:
         // cout << "initial PC : " << PC << endl;
         for (i = programCounter; i < program.size(); i++)
         {
-            cout << "vachina" << endl;
             for (int j = 0; j < rememberStalls.size(); j++)
             {
                 if ((PC - rememberStalls[j][1]) >= 2)
@@ -559,7 +595,6 @@ public:
                     // lw $s1, 0($s3)
                     int address;
                     lw(program[i], i, address);
-                    cout << address << "\n";
                     int memCycles = getMemCycles(address);
                     switch (flag)
                     {
@@ -569,6 +604,7 @@ public:
 
                     case 2:
                         checkDependencyWithoutForwarding(i, program[i][2], PC);
+                        stallCycles += memCycles - 1;
                         break;
 
                     default:
@@ -581,7 +617,7 @@ public:
                     int address;
                     sw(program[i], i, address);
                     int memCycles = getMemCycles(address);
-                    stalls += memCycles - 1;
+                    stallCycles += memCycles - 1;
                 }
                 else if (instruction == "la")
                 {
@@ -685,22 +721,19 @@ public:
     // sub $ s0 , $ s2 , $ s3 // assumption : v[7] should be either '$' or an integer
     void sub(vector<string> v, int pc)
     {
+        cout << "1\n";
         if ((v.size() == 9 || v.size() == 8) && v[1] == "$" && v[4] == "$" && v[3] == "," && v[6] == ",")
         {
-            if (v.size() == 9 && v[7] == "$" && Register.find(v[2]) != Register.end() && Register.find(v[5]) != Register.end() && Register.find(v[8]) != Register.end())
+            cout << "2\n";
+            if (v.size() == 9 /* && v[7] == "$" && Register.find(v[2]) != Register.end() && Register.find(v[5]) != Register.end() && Register.find(v[8]) != Register.end()*/)
             {
+                cout << "3\n";
                 int a = Register.find(v[5])->second;
                 int b = Register.find(v[8])->second;
                 int c = a - b;
                 Register.find(v[2])->second = c;
             }
-            else
-            {
-                cout << "Error in line " << pc + 1 << "." << endl;
-                exit(1);
-            }
-
-            if (v.size() == 8 && Register.find(v[5]) != Register.end() && Register.find(v[2]) != Register.end())
+            else if (v.size() == 8 && Register.find(v[5]) != Register.end() && Register.find(v[2]) != Register.end())
             {
                 int a = Register.find(v[5])->second;
                 int c = a - stoi(v[7]);
@@ -714,6 +747,7 @@ public:
         }
         else
         {
+            cout << "5\n";
             cout << "Error in line " << pc + 1 << "." << endl;
             exit(1);
         }
@@ -832,12 +866,12 @@ public:
         {
             int b = stoi(v[4]);
             int c = Register.find(v[7])->second;
-            if (b % 4 != 0 && memory[(b + c) / 4][1] != "word" && c % 4 != 0)
+            if (b % 4 != 0 || c % 4 != 0 || memory[(b + c) / 4][1] != "word")
             {
                 cout << "Error in line " << pc + 1 << "." << endl;
                 exit(1);
             }
-            address = (b + c) / 4;
+            address = b + c;
             Register[v[2]] = stoi(memory[(b + c) / 4][0]);
         }
         else
@@ -855,12 +889,12 @@ public:
             int a = Register.find(v[2])->second;
             int b = stoi(v[4]);
             int c = Register.find(v[7])->second;
-            if (b % 4 != 0 && memory[(b + c) / 4][1] != "word" && c % 4 != 0)
+            if (b % 4 != 0 || c % 4 != 0 || memory[(b + c) / 4][1] != "word")
             {
                 cout << "Error in line " << pc + 1 << "." << endl;
                 exit(1);
             }
-            int address = (b + c) / 4;
+            address = b + c;
             memory[(b + c) / 4][0] = to_string(a);
         }
         else
@@ -942,11 +976,13 @@ public:
             }
             cout << endl;
             idealClockCycle += 1; // for last syscall instruction
-            cout << "\nStalls : " << stalls << endl;
+            cout << "\nStalls : " << stallCycles << endl;
             cout << "Ideal clock cycles : " << idealClockCycle << endl;
-            cout << "clock cycles : " << stalls + idealClockCycle << endl;
-            double ipc = (double)(idealClockCycle - 4) / (stalls + idealClockCycle);
+            cout << "clock cycles : " << stallCycles + idealClockCycle << endl;
+            double ipc = (double)(idealClockCycle - 4) / (stallCycles + idealClockCycle);
             cout << "IPC: " << ipc << endl;
+            cout << "Miss rate of level 1 : " << (double)cache->cacheMisses1 / (double)cache->totalCacheAccess1 << endl;
+            cout << "Miss rate of level 2 : " << (double)cache->cacheMisses2 / (double)cache->totalCacheAccess2 << endl;
             exit(1);
         }
         else if (Register.find("v0")->second == 1)
@@ -973,69 +1009,92 @@ public:
         }
     }
 
-    // 32 bit address, 0 1 2 3        00000000000000000001
+    // 32 bit address, 0 1 2 3
     int getMemCycles(int address)
     {
-        int copyAddress = address;
+        //4, 8, 4, 4, 1, 1, 2, 4, 50 chache1Size, cache2Size, blockSize1, blockSize2, associativity1, associativity2, cache1Latency, cache2Latency, memoryLatency
+        // cout << "address : " << address << endl;
         int indexBits1 = 0;
         int indexBits2 = 0;
-        int offsetBits = 0;
-        int tagBits = 0;
-        for (int i = 0; i < offset; i++)
-        {
-            offsetBits += (address & 1) * pow(2, i);
-            address = address >> 1;
-        }
-        int tempAddress = address;
-        for (int i = 0; i < index1; i++)
-        {
-            indexBits1 += (tempAddress & 1) * pow(2, i);
-            tempAddress = tempAddress >> 1;
-        }
 
-        multimap<int, Node>::iterator itr;
-        for (itr = set1Array[indexBits1].begin(); itr != set1Array[indexBits1].end(); itr++)
+        int offsetBits1 = 0;
+        int offsetBits2 = 0;
+
+        int tagBits1 = 0;
+        int tagBits2 = 0;
+
+        cache->totalCacheAccess1++;
+        int copyAddress1 = address;
+        for (int i = 0; i < cache->offset1; i++)
         {
-            if (tagBits == itr->second.tag)
+            offsetBits1 += (copyAddress1 & 1) * pow(2, i);
+            copyAddress1 = copyAddress1 >> 1;
+        }
+        for (int i = 0; i < cache->index1; i++)
+        {
+            indexBits1 += (copyAddress1 & 1) * pow(2, i);
+            copyAddress1 = copyAddress1 >> 1;
+        }
+        tagBits1 = copyAddress1;
+        multimap<int, Node>::iterator itr, itrEnd;
+        for (itr = cache->set1Array[indexBits1].begin(); itr != cache->set1Array[indexBits1].end(); itr++)
+        {
+            if (tagBits1 == itr->second.tag)
             {
-                set1Array[indexBits1].insert(make_pair(itr->first + 1, itr->second));
-                set1Array[indexBits1].erase(itr);
-                return cache1Latency;
+                cache->set1Array[indexBits1].insert(make_pair(itr->first + 1, itr->second));
+                cache->set1Array[indexBits1].erase(itr);
+                return cache->cache1Latency;
+            }
+        }
+        cache->cacheMisses1++;
+
+        Node node(tagBits1);
+
+        itr = cache->set1Array[indexBits1].begin();
+        itrEnd = cache->set1Array[indexBits1].end();
+        cache->set1Array[indexBits1].insert(make_pair(itrEnd->first + 1, node));
+        cache->set1Array[indexBits1].erase(itr);
+
+        // level2
+        cache->totalCacheAccess2++;
+        int copyAddress2 = address;
+        for (int i = 0; i < cache->offset2; i++)
+        {
+            offsetBits2 += (copyAddress2 & 1) * pow(2, i);
+            copyAddress2 = copyAddress2 >> 1;
+        }
+        for (int i = 0; i < cache->index2; i++)
+        {
+            indexBits2 += (copyAddress2 & 1) * pow(2, i);
+            copyAddress2 = copyAddress2 >> 1;
+        }
+        tagBits2 = copyAddress2;
+        cout << "tagBits2 : " << tagBits2 << endl;
+        for (itr = cache->set2Array[indexBits2].begin(); itr != cache->set2Array[indexBits2].end(); itr++)
+        {
+            if (tagBits2 == itr->second.tag)
+            {
+                cache->set2Array[indexBits2].insert(make_pair(itr->first + 1, itr->second));
+                cache->set2Array[indexBits2].erase(itr);
+                return (cache->cache1Latency + cache->cache2Latency);
             }
         }
 
-        for (int i = 0; i < index2; i++)
-        {
-            indexBits2 += (address & 1) * pow(2, i);
-            address = address >> 1;
-        }
+        // Memory
+        cache->cacheMisses2++;
 
-        for (itr = set2Array[indexBits2].begin(); itr != set2Array[indexBits2].end(); itr++)
-        {
-            if (tagBits == itr->second.tag)
-            {
-                set2Array[indexBits2].insert(make_pair(itr->first + 1, itr->second));
-                set2Array[indexBits2].erase(itr);
-                return (cache1Latency + cache2Latency);
-            }
-        }
+        Node node2(tagBits2);
+        itr = cache->set2Array[indexBits2].begin();
+        itrEnd = cache->set2Array[indexBits2].end();
+        cache->set2Array[indexBits2].insert(make_pair(itrEnd->first + 1, node2));
+        cache->set2Array[indexBits2].erase(itr);
 
-        cacheMisses++;
-        Node node(tagBits);
-
-        itr = set1Array[indexBits1].begin();
-        set1Array[indexBits1].insert(make_pair(itr->first, node));
-
-        itr = set2Array[indexBits2].begin();
-        set2Array[indexBits2].insert(make_pair(itr->first, node));
-
-        return (memoryLatency + cache1Latency + cache2Latency);
+        return (cache->memoryLatency + cache->cache1Latency + cache->cache2Latency);
     }
 
-    // check psuedo instructions;; Now they are treated as single instruction
+    // check psuedo instructions; As of now, they are treated as single instruction
     void checkDependencyWithoutForwarding(int i, string reg1, int pc)
-    { // polymorphism
-        //cout << "vachina" << endl;
+    {
         int copy1 = i;
         while (copy1 + 1 < program.size() && (program[copy1 + 1].size() == 0 || program[copy1 + 1].size() == 1))
         {
@@ -1051,12 +1110,12 @@ public:
         // lw  $s0, 0($s8)
         // sw  $s3, 0($s4)
         // addi $s3, $s4, 9
-        // li $s6, 8    *************
+        // li $s6, 8
         // bne $s9, $s9, label
         // beq $s9, $s9, label
         // j jump
         // slt $t2 ,$t0 ,$t1
-        // la $s9, label    ************
+        // la $s9, label
         //cout << "\ncopy1 " << copy1+1 << " " << copy2+1 << endl;
         // cout << program[copy1+1][7] << " " << reg1 <<  endl;
 
@@ -1067,14 +1126,14 @@ public:
             rememberStalls[copy1 + 1][0] = 1;
             rememberStalls[copy1 + 1][1] = pc;
             instructionStalls[copy1 + 1]++;
-            stalls++;
+            stallCycles++;
             return;
         }
         if (copy1 + 1 < program.size() && (program[copy1 + 1][0] == "add" || program[copy1 + 1][0] == "slt") && (program[copy1 + 1][5] == reg1 || program[copy1 + 1][8] == reg1))
         {
             if (rememberStalls[copy1 + 1][0] < 2)
             {
-                rememberStalls[copy1 + 1][0] == 0 ? stalls += 2 : stalls++;
+                rememberStalls[copy1 + 1][0] == 0 ? stallCycles += 2 : stallCycles++;
                 rememberStalls[copy1 + 1][0] == 0 ? instructionStalls[copy1 + 1] += 2 : instructionStalls[copy1 + 1]++;
                 rememberStalls[copy1 + 1][0] = 2;
                 rememberStalls[copy1 + 1][1] = pc;
@@ -1087,7 +1146,7 @@ public:
             {
                 if (rememberStalls[copy1 + 1][0] < 2)
                 {
-                    rememberStalls[copy1 + 1][0] == 0 ? stalls += 2 : stalls++;
+                    rememberStalls[copy1 + 1][0] == 0 ? stallCycles += 2 : stallCycles++;
                     rememberStalls[copy1 + 1][0] == 0 ? instructionStalls[copy1 + 1] += 2 : instructionStalls[copy1 + 1]++;
                     rememberStalls[copy1 + 1][0] = 2;
                     rememberStalls[copy1 + 1][1] = pc;
@@ -1097,7 +1156,7 @@ public:
             {
                 if (rememberStalls[copy1 + 1][0] < 2)
                 {
-                    rememberStalls[copy1 + 1][0] == 0 ? stalls += 2 : stalls++;
+                    rememberStalls[copy1 + 1][0] == 0 ? stallCycles += 2 : stallCycles++;
                     rememberStalls[copy1 + 1][0] == 0 ? instructionStalls[copy1 + 1] += 2 : instructionStalls[copy1 + 1]++;
                     rememberStalls[copy1 + 1][0] = 2;
                     rememberStalls[copy1 + 1][1] = pc;
@@ -1109,7 +1168,7 @@ public:
         {
             if (rememberStalls[copy1 + 1][0] < 2)
             {
-                rememberStalls[copy1 + 1][0] == 0 ? stalls += 2 : stalls++;
+                rememberStalls[copy1 + 1][0] == 0 ? stallCycles += 2 : stallCycles++;
                 rememberStalls[copy1 + 1][0] == 0 ? instructionStalls[copy1 + 1] += 2 : instructionStalls[copy1 + 1]++;
                 rememberStalls[copy1 + 1][0] = 2;
                 rememberStalls[copy1 + 1][1] = pc;
@@ -1120,7 +1179,7 @@ public:
         {
             if (rememberStalls[copy1 + 1][0] < 2)
             {
-                rememberStalls[copy1 + 1][0] == 0 ? stalls += 2 : stalls++;
+                rememberStalls[copy1 + 1][0] == 0 ? stallCycles += 2 : stallCycles++;
                 rememberStalls[copy1 + 1][0] == 0 ? instructionStalls[copy1 + 1] += 2 : instructionStalls[copy1 + 1]++;
                 rememberStalls[copy1 + 1][0] = 2;
                 rememberStalls[copy1 + 1][1] = pc;
@@ -1131,7 +1190,7 @@ public:
         {
             if (rememberStalls[copy1 + 1][0] < 2)
             {
-                rememberStalls[copy1 + 1][0] == 0 ? stalls += 2 : stalls++;
+                rememberStalls[copy1 + 1][0] == 0 ? stallCycles += 2 : stallCycles++;
                 rememberStalls[copy1 + 1][0] == 0 ? instructionStalls[copy1 + 1] += 2 : instructionStalls[copy1 + 1]++;
                 rememberStalls[copy1 + 1][0] = 2;
                 rememberStalls[copy1 + 1][1] = pc;
@@ -1148,7 +1207,7 @@ public:
             {
                 if (rememberStalls[copy1 + 1][0] < 2)
                 {
-                    rememberStalls[copy1 + 1][0] == 0 ? stalls += 2 : stalls++;
+                    rememberStalls[copy1 + 1][0] == 0 ? stallCycles += 2 : stallCycles++;
                     rememberStalls[copy1 + 1][0] == 0 ? instructionStalls[copy1 + 1] += 2 : instructionStalls[copy1 + 1]++;
                     rememberStalls[copy1 + 1][0] = 2;
                     rememberStalls[copy1 + 1][1] = pc;
@@ -1159,7 +1218,7 @@ public:
         // copy2 ......
         if (copy2 + 1 < program.size() && (program[copy2 + 1][0] == "add" || program[copy2 + 1][0] == "slt") && (program[copy2 + 1][5] == reg1 || program[copy2 + 1][8] == reg1))
         {
-            stalls++;
+            stallCycles++;
             instructionStalls[copy2 + 1]++;
             rememberStalls[copy2 + 1][0] = 1;
             rememberStalls[copy2 + 1][1] = pc;
@@ -1169,14 +1228,14 @@ public:
         {
             if (program[copy2 + 1].size() == 9 && (program[copy2 + 1][5] == reg1 || program[copy2 + 1][8] == reg1))
             {
-                stalls++;
+                stallCycles++;
                 instructionStalls[copy2 + 1]++;
                 rememberStalls[copy2 + 1][0] = 1;
                 rememberStalls[copy2 + 1][1] = pc;
             }
             if (program[copy2 + 1].size() == 8 && program[copy2 + 1][5] == reg1)
             {
-                stalls++;
+                stallCycles++;
                 instructionStalls[copy2 + 1]++;
                 rememberStalls[copy2 + 1][0] = 1;
                 rememberStalls[copy2 + 1][1] = pc;
@@ -1185,7 +1244,7 @@ public:
         }
         if (copy2 + 1 < program.size() && program[copy2 + 1][0] == "addi" && program[copy2 + 1][5] == reg1)
         {
-            stalls++;
+            stallCycles++;
             instructionStalls[copy2 + 1]++;
             rememberStalls[copy2 + 1][0] = 1;
             rememberStalls[copy2 + 1][1] = pc;
@@ -1193,7 +1252,7 @@ public:
         }
         if (copy2 + 1 < program.size() && (program[copy2 + 1][0] == "lw") && (program[copy2 + 1][7] == reg1))
         {
-            stalls++;
+            stallCycles++;
             instructionStalls[copy2 + 1]++;
             rememberStalls[copy2 + 1][0] = 1;
             rememberStalls[copy2 + 1][1] = pc;
@@ -1204,7 +1263,7 @@ public:
             rememberStalls[copy2 + 1][0] = 1;
             rememberStalls[copy2 + 1][1] = pc;
             instructionStalls[copy2 + 1]++;
-            stalls++;
+            stallCycles++;
             return;
         }
         if (copy2 + 1 < program.size() && (program[copy2 + 1][0] == "bne" || program[copy2 + 1][0] == "beq") && (program[copy2 + 1][2] == reg1 || program[copy2 + 1][5] == reg1))
@@ -1212,7 +1271,7 @@ public:
             rememberStalls[copy2 + 1][0] = 1;
             rememberStalls[copy2 + 1][1] = pc;
             instructionStalls[copy2 + 1]++;
-            stalls++;
+            stallCycles++;
             return;
         }
     }
@@ -1249,14 +1308,14 @@ public:
             rememberStalls[copy1 + 1][0] = 1;
             rememberStalls[copy1 + 1][1] = PC;
             instructionStalls[copy1 + 1]++;
-            stalls++;
+            stallCycles++;
             return;
         }
 
         if (operation == "lw" || operation == "la")
         {
             if (operation == "lw")
-                stalls += memCycles - 1;
+                stallCycles += memCycles - 1;
 
             // copy1 ..........
             if (copy1 + 1 < program.size() && (program[copy1 + 1][0] == "add" || program[copy1 + 1][0] == "slt") && (program[copy1 + 1][5] == reg1 || program[copy1 + 1][8] == reg1))
@@ -1266,7 +1325,7 @@ public:
                     rememberStalls[copy1 + 1][0] = 1;
                     rememberStalls[copy1 + 1][1] = PC;
                     instructionStalls[copy1 + 1]++;
-                    stalls++;
+                    stallCycles++;
                 }
                 return;
             }
@@ -1279,7 +1338,7 @@ public:
                         rememberStalls[copy1 + 1][0] = 1;
                         rememberStalls[copy1 + 1][1] = PC;
                         instructionStalls[copy1 + 1]++;
-                        stalls++;
+                        stallCycles++;
                     }
                 }
                 if (program[copy1 + 1].size() == 8 && program[copy1 + 1][5] == reg1)
@@ -1289,7 +1348,7 @@ public:
                         rememberStalls[copy1 + 1][0] = 1;
                         rememberStalls[copy1 + 1][1] = PC;
                         instructionStalls[copy1 + 1]++;
-                        stalls++;
+                        stallCycles++;
                     }
                 }
                 return;
@@ -1301,7 +1360,7 @@ public:
                     rememberStalls[copy1 + 1][0] = 1;
                     rememberStalls[copy1 + 1][1] = PC;
                     instructionStalls[copy1 + 1]++;
-                    stalls++;
+                    stallCycles++;
                 }
                 return;
             }
@@ -1312,7 +1371,7 @@ public:
                     rememberStalls[copy1 + 1][0] = 1;
                     rememberStalls[copy1 + 1][1] = PC;
                     instructionStalls[copy1 + 1]++;
-                    stalls++;
+                    stallCycles++;
                 }
                 return;
             }
@@ -1323,7 +1382,7 @@ public:
                     rememberStalls[copy1 + 1][0] = 1;
                     rememberStalls[copy1 + 1][1] = PC;
                     instructionStalls[copy1 + 1]++;
-                    stalls++;
+                    stallCycles++;
                 }
                 return;
             }
@@ -1331,7 +1390,7 @@ public:
             {
                 if (rememberStalls[copy1 + 1][0] < 2)
                 {
-                    rememberStalls[copy1 + 1][0] == 0 ? stalls += 2 : stalls++;
+                    rememberStalls[copy1 + 1][0] == 0 ? stallCycles += 2 : stallCycles++;
                     rememberStalls[copy1 + 1][0] == 0 ? instructionStalls[copy1 + 1] += 2 : instructionStalls[copy1 + 1]++;
                     rememberStalls[copy1 + 1][0] = 2;
                     rememberStalls[copy1 + 1][1] = PC;
@@ -1346,7 +1405,7 @@ public:
                     rememberStalls[copy2 + 1][0] = 1;
                     rememberStalls[copy2 + 1][1] = PC;
                     instructionStalls[copy2 + 1]++;
-                    stalls++;
+                    stallCycles++;
                 }
                 return;
             }
@@ -1363,7 +1422,7 @@ public:
                     rememberStalls[copy1 + 1][0] = 1;
                     rememberStalls[copy1 + 1][1] = PC;
                     instructionStalls[copy1 + 1]++;
-                    stalls++;
+                    stallCycles++;
                 }
                 return;
             }
@@ -1380,7 +1439,7 @@ public:
                         rememberStalls[copy1 + 1][0] = 1;
                         rememberStalls[copy1 + 1][1] = PC;
                         instructionStalls[copy1 + 1]++;
-                        stalls++;
+                        stallCycles++;
                     }
                 }
             }
@@ -1393,7 +1452,7 @@ public:
                         rememberStalls[copy1 + 1][0] = 1;
                         rememberStalls[copy1 + 1][1] = PC;
                         instructionStalls[copy1 + 1]++;
-                        stalls++;
+                        stallCycles++;
                     }
                 }
             }
@@ -1409,7 +1468,7 @@ public:
                     rememberStalls[copy1 + 1][0] = 1;
                     rememberStalls[copy1 + 1][1] = PC;
                     instructionStalls[copy1 + 1]++;
-                    stalls++;
+                    stallCycles++;
                 }
                 return;
             }
@@ -1544,9 +1603,9 @@ public:
 int main()
 {
     cout << "/******MIPS Simulator******/\nEnter your file's name: \n";
-    string fileName;
-    cin >> fileName;
-    mipsSimulator mips(fileName, 16, 64, 4, 2, 2, 4, 50); // chache1Size, cache2Size, blockSize, associativity, cache1Latency, cache2Latency, memoryLatency
+    string fileName = "myFile3.txt";
+    // cin >> fileName;
+    mipsSimulator mips(fileName, 8, 16, 4, 4, 2, 2, 2, 4, 50); // chache1Size, cache2Size, blockSize1, blockSize2, associativity1, associativity2, cache1Latency, cache2Latency, memoryLatency
 
     int opt;
     cout << "\n1- stepByStep execution\n2- Execution\nAny other key to exit\n";
