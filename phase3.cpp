@@ -1603,9 +1603,59 @@ public:
 int main()
 {
     cout << "/******MIPS Simulator******/\nEnter your file's name: \n";
-    string fileName = "myFile3.txt";
-    // cin >> fileName;
-    mipsSimulator mips(fileName, 8, 16, 4, 4, 2, 2, 2, 4, 50); // chache1Size, cache2Size, blockSize1, blockSize2, associativity1, associativity2, cache1Latency, cache2Latency, memoryLatency
+    string fileName, dataFile;
+    cout << "Code_File: ";
+    cin >> fileName;
+    cout << "Data_File: ";
+    cin >> dataFile;
+    int cache1Size;
+    int cache2Size;
+
+    int blockSize1;
+    int blockSize2;
+
+    int associativity1;
+    int associativity2;
+
+    int cache1Latency;
+    int cache2Latency;
+
+    int memoryLatency;
+
+    ifstream file1(dataFile); 
+    string dataInLine;
+    if(file1.is_open()){
+        file1 >> cache1Size;
+        file1 >> blockSize1;
+        file1 >> associativity1;
+        file1 >> cache1Latency;
+        file1 >> cache2Size;
+        file1 >> blockSize2;
+        file1 >> associativity2;
+        file1 >> cache2Latency;
+
+        file1 >> memoryLatency;
+    }
+    else{
+        cout << "Data File does not exist" << endl;
+        exit(1);
+    }
+
+        cout << cache1Size << endl;
+        cout << blockSize1 << endl;
+        cout << associativity1 << endl;
+        cout << cache1Latency << endl;
+        cout << cache2Size << endl;
+        cout << blockSize2 << endl;
+        cout << associativity2 << endl;
+        cout << cache2Latency << endl;
+
+        cout << memoryLatency << endl;
+
+    
+
+
+    mipsSimulator mips(fileName, cache1Size, cache2Size, blockSize1, blockSize2, associativity1, associativity2, cache1Latency, cache2Latency, memoryLatency); // chache1Size, cache2Size, blockSize1, blockSize2, associativity1, associativity2, cache1Latency, cache2Latency, memoryLatency
 
     int opt;
     cout << "\n1- stepByStep execution\n2- Execution\nAny other key to exit\n";
