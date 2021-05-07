@@ -25,11 +25,11 @@ GUI interface code in "mips_phase2" folder(latest update).(PHASE - 2)
 1. psuedo instruction "la" is assumned as a single instruction( Asummed number to be stored in register is less than 2^16 )
 2. We assumed no branch predictors, and therefore after every branch instruction there will be one stall.
 
-GUI interface code in "phase3.cpp" file(latest update).(PHASE - 3)
+GUI interface code in "mips_phase3.cpp" folder(latest update).(PHASE - 3)
 ---------------------------------------------------------------------
 1. Only restriction here is block sizes are to be given in multiples of 4(all sizes are assumed to be in bytes).
 2. Only applied cache mechanism on "lw" and "sw"(not on "la").
-
+3. Order of parameters in parameters file : cache1(level 1) size, cache1 block size, cache1 associativity, cache1 access latency, cache2(level 2) size, cache2 block size, cache2 associativity, cache2 access latency, memory latency.
 
 STEPS TO RUN THROUGH GUI INTERFACE:
 ----------------------------------
