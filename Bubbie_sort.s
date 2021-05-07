@@ -9,7 +9,6 @@ main:
 	addi $s1, $zero, 10
 	j bubbleSort
 	
-
 bubbleSort:
 	beq  $zero, $s1, out
 	add  $s2, $s1, $zero
@@ -40,7 +39,6 @@ out:
 	addi $s1, $zero, 11
 	j print
 	
-
 print:
 	beq $zero, $s1, jmpp
 	addi $v0, $zero, 1
