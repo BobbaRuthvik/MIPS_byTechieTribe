@@ -44,7 +44,7 @@ void MainWindow::showStalls_1(pair<pair<vector<int>, pair<double, double>>, pair
     s += to_string(p.first.second.first);
     s += "\n\nMiss rate of level 2 Cache\t: ";
     s += to_string(p.first.second.second);
-    s += "\n\n-----------------------------------------------------\n\nNumber of stalls for each instruction: \n\n";
+    s += "\n\n-----------------------------------------------------\n\nStall Display: \n\n";
     for(int i=0; i<p.first.first.size(); i++){
         s += to_string(i+1);
         s += "\t";
@@ -63,7 +63,7 @@ void MainWindow::showStalls_2(pair<pair<vector<int>, pair<double, double>>, pair
     s += to_string(p.first.second.first);
     s += "\n\nMiss rate of level 2 Cache\t: ";
     s += to_string(p.first.second.second);
-    s += "\n\n-----------------------------------------------------\n\nNumber of stalls for each instruction: \n\n";
+    s += "\n\n-----------------------------------------------------\n\nStall Display: \n\n";
     for(int i=0; i<p.first.first.size(); i++){
         s += to_string(i+1);
         s += "\t";
@@ -834,87 +834,88 @@ class mipsSimulator {
             }
         }
 
-        int getMemCycles(int address)               // 1. gives back additional memory cycles consumed per instruction
-            {                                       // 2. also performs replacement policy(LRU)
-                int indexBits1 = 0;
-                int indexBits2 = 0;
+    int getMemCycles(int address)
+    {                       // 1. gives back additional memory cycles consumed per instruction
+        int indexBits1 = 0; // 2. also performs replacement policy(LRU)
+        int indexBits2 = 0;
 
-                int offsetBits1 = 0;
-                int offsetBits2 = 0;
+        int offsetBits1 = 0;
+        int offsetBits2 = 0;
 
-                int tagBits1 = 0;
-                int tagBits2 = 0;
+        int tagBits1 = 0;
+        int tagBits2 = 0;
 
-                cache->totalCacheAccess1++;
-                int copyAddress1 = address;
-                for (int i = 0; i < cache->offset1; i++)
-                {
-                    offsetBits1 += (copyAddress1 & 1) * pow(2, i);
-                    copyAddress1 = copyAddress1 >> 1;
-                }
-                for (int i = 0; i < cache->index1; i++)
-                {
-                    indexBits1 += (copyAddress1 & 1) * pow(2, i);
-                    copyAddress1 = copyAddress1 >> 1;
-                }
-                tagBits1 = copyAddress1;
+        /********************************** Level 1 *************************************/
+        cache->totalCacheAccess1++;
+        int copyAddress1 = address;
+        for (int i = 0; i < cache->offset1; i++)
+        {
+            offsetBits1 += (copyAddress1 & 1) * pow(2, i);
+            copyAddress1 = copyAddress1 >> 1;
+        }
+        for (int i = 0; i < cache->index1; i++)
+        {
+            indexBits1 += (copyAddress1 & 1) * pow(2, i);
+            copyAddress1 = copyAddress1 >> 1;
+        }
+        tagBits1 = copyAddress1;
 
-                //level1
-                multimap<int, Block>::iterator itr, itrEnd;
-                for (itr = cache->set1Array[indexBits1].begin(); itr != cache->set1Array[indexBits1].end(); itr++)
-                {
-                    if (tagBits1 == itr->second.tag)
-                    {
-                        cache->set1Array[indexBits1].insert(make_pair(itr->first + 1, itr->second));
-                        cache->set1Array[indexBits1].erase(itr);
-                        return cache->cache1Latency;
-                    }
-                }
-                cache->cacheMisses1++;
-
-                Block node(tagBits1);
-
-                itr = cache->set1Array[indexBits1].begin();
-                itrEnd = cache->set1Array[indexBits1].end();
-                cache->set1Array[indexBits1].insert(make_pair(itrEnd->first + 1, node));
+        multimap<int, Block>::iterator itr, itrEnd;
+        itrEnd = cache->set1Array[indexBits1].end();
+        itrEnd--;
+        for (itr = cache->set1Array[indexBits1].begin(); itr != cache->set1Array[indexBits1].end(); itr++)
+        {
+            if (tagBits1 == itr->second.tag)
+            {
+                cache->set1Array[indexBits1].insert(make_pair(itrEnd->first + 1, itr->second));
                 cache->set1Array[indexBits1].erase(itr);
-
-                // level2
-                cache->totalCacheAccess2++;
-                int copyAddress2 = address;
-                for (int i = 0; i < cache->offset2; i++)
-                {
-                    offsetBits2 += (copyAddress2 & 1) * pow(2, i);
-                    copyAddress2 = copyAddress2 >> 1;
-                }
-                for (int i = 0; i < cache->index2; i++)
-                {
-                    indexBits2 += (copyAddress2 & 1) * pow(2, i);
-                    copyAddress2 = copyAddress2 >> 1;
-                }
-                tagBits2 = copyAddress2;
-
-                for (itr = cache->set2Array[indexBits2].begin(); itr != cache->set2Array[indexBits2].end(); itr++)
-                {
-                    if (tagBits2 == itr->second.tag)
-                    {
-                        cache->set2Array[indexBits2].insert(make_pair(itr->first + 1, itr->second));
-                        cache->set2Array[indexBits2].erase(itr);
-                        return (cache->cache1Latency + cache->cache2Latency);
-                    }
-                }
-
-                // Memory
-                cache->cacheMisses2++;
-
-                Block node2(tagBits2);
-                itr = cache->set2Array[indexBits2].begin();
-                itrEnd = cache->set2Array[indexBits2].end();
-                cache->set2Array[indexBits2].insert(make_pair(itrEnd->first + 1, node2));
-                cache->set2Array[indexBits2].erase(itr);
-
-                return (cache->memoryLatency + cache->cache1Latency + cache->cache2Latency);
+                return cache->cache1Latency;
             }
+        }
+        cache->cacheMisses1++;
+
+        Block block(tagBits1);
+
+        itr = cache->set1Array[indexBits1].begin();
+        cache->set1Array[indexBits1].insert(make_pair(itrEnd->first + 1, block));
+        cache->set1Array[indexBits1].erase(itr);
+
+        /************************************ Level2 *************************************/
+        cache->totalCacheAccess2++;
+        int copyAddress2 = address;
+        for (int i = 0; i < cache->offset2; i++)
+        {
+            offsetBits2 += (copyAddress2 & 1) * pow(2, i);
+            copyAddress2 = copyAddress2 >> 1;
+        }
+        for (int i = 0; i < cache->index2; i++)
+        {
+            indexBits2 += (copyAddress2 & 1) * pow(2, i);
+            copyAddress2 = copyAddress2 >> 1;
+        }
+        tagBits2 = copyAddress2;
+
+        itrEnd = cache->set2Array[indexBits2].end();
+        itrEnd--;
+        for (itr = cache->set2Array[indexBits2].begin(); itr != cache->set2Array[indexBits2].end(); itr++)
+        {
+            if (tagBits2 == itr->second.tag)
+            {
+                cache->set2Array[indexBits2].insert(make_pair(itrEnd->first + 1, itr->second));
+                cache->set2Array[indexBits2].erase(itr);
+                return (cache->cache1Latency + cache->cache2Latency);
+            }
+        }
+        cache->cacheMisses2++;
+
+        Block node2(tagBits2);
+        itr = cache->set2Array[indexBits2].begin();
+        cache->set2Array[indexBits2].insert(make_pair(itrEnd->first + 1, node2));
+        cache->set2Array[indexBits2].erase(itr);
+
+        return (cache->memoryLatency + cache->cache1Latency + cache->cache2Latency);
+    }
+
 
 
         void checkDependencyWithoutForwarding(int i, string reg1, int pc)
