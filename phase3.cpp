@@ -9,16 +9,18 @@
 
 using namespace std;
 
-class Block                      // cache block datatype
+class Block // cache block datatype
 {
 public:
     int tag;
-    Block(int tag = -1){
+    Block(int tag = -1)
+    {
         this->tag = tag;
     }
 };
 
-class Cache{
+class Cache
+{
 public:
     /*Cache parameters*/
     int cache1Size;
@@ -47,13 +49,13 @@ public:
     int index1;
     int index2;
 
-    int cacheMisses1 = 0;                       // stores # of cache1 misses
-    int cacheMisses2 = 0;                       // stores # of cache2 misses
+    int cacheMisses1 = 0; // stores # of cache1 misses
+    int cacheMisses2 = 0; // stores # of cache2 misses
 
-    int totalCacheAccess1 = 0;                  // stores # of cache1 accesses  // (HITS = TOTAL_ACCESS - MISSES)               
-    int totalCacheAccess2 = 0;                  // stores # of cache2 accesses
+    int totalCacheAccess1 = 0; // stores # of cache1 accesses  // (HITS = TOTAL_ACCESS - MISSES)
+    int totalCacheAccess2 = 0; // stores # of cache2 accesses
 
-    vector<multimap<int, Block>> set1Array;     // multimap is used because initially all tags were initialized to same value
+    vector<multimap<int, Block>> set1Array; // multimap is used because initially all tags were initialized to same value
     vector<multimap<int, Block>> set2Array;
 
     Cache(int cache1Size, int cache2Size, int blockSize1, int blockSize2, int associativity1, int associativity2, int cache1Latency, int cache2Latency, int memoryLatency)
@@ -84,7 +86,7 @@ public:
         index1 = log2(numOfSets1);
         index2 = log2(numOfSets2);
 
-        for (int i = 0; i < numOfSets1; i++)        // initialize cache1
+        for (int i = 0; i < numOfSets1; i++) // initialize cache1
         {
             multimap<int, Block> mp;
             for (int j = 0; j < associativity1; j++)
@@ -95,7 +97,7 @@ public:
             set1Array.push_back(mp);
         }
 
-        for (int i = 0; i < numOfSets2; i++)        // initialize cache2
+        for (int i = 0; i < numOfSets2; i++) // initialize cache2
         {
             multimap<int, Block> mp;
             for (int j = 0; j < associativity2; j++)
@@ -113,7 +115,7 @@ class mipsSimulator
 private:
     string registerNames[32] = {"zero", "at", "v0", "v1", "a0", "a1", "a2", "a3", "t0", "t1", "t2", "t3", "t4", "t5", "t6", "t7", "s0", "s1", "s2", "s3", "s4", "s5", "s6", "s7", "t8", "t9", "k0", "k1", "gp", "sp", "fp", "ra"};
     map<string, int> Register;
-    vector<vector<string>> program;     // entire program is stored line by line
+    vector<vector<string>> program; // entire program is stored line by line
     set<string> data_types = {".word", ".asciiz"};
     int programCounter;                 // to store current line
     int PC = 0;                         // program counter without new lines
@@ -121,7 +123,7 @@ private:
     string memory[1024][2];             // arr[I][0] = value arr[][1] = type
     int freeMemoryAvailable = 1024 * 4; // bytes
     map<string, int> labels;            // for storing address associated with label
-    int current_mem_address = 0;        // stores the address of recently entered data               
+    int current_mem_address = 0;        // stores the address of recently entered data
     int stallCycles = 0;                // total stalls in code
     vector<vector<int>> rememberStalls; // stalls, pc value
     vector<int> instructionStalls;      // stores whether an instruction has stall (or) not
@@ -146,8 +148,9 @@ public:
         TotalLines = 0;
         programCounter = 0;
         string lineInput;
-        ifstream file(filePath);                        // File path is basically file name including .txt(I think both file and program needs to be in same directory)
-        if (file.is_open()){                            // opens file and check if it's there or not
+        ifstream file(filePath); // File path is basically file name including .txt(I think both file and program needs to be in same directory)
+        if (file.is_open())
+        { // opens file and check if it's there or not
             vector<int> temp;
             temp.push_back(0);
             temp.push_back(0);
@@ -176,18 +179,22 @@ public:
         }
     }
 
-    void Memdisplay(){                                                      // dislays memory occupied
+    void Memdisplay()
+    { // dislays memory occupied
         for (int i = 0; i < current_mem_address; i++)
         {
             cout << "\t" << i * 4 << "\t" << memory[i][0] << endl;
         }
     }
 
-    vector<string> subVector(string s){                                    // separates all neccesory keywords(essentials of instruction) by space
+    vector<string> subVector(string s)
+    { // separates all neccesory keywords(essentials of instruction) by space
         vector<string> v;
         string temp = "";
-        for (int i = 0; i < s.size(); i++){
-            if (s[i] == ',' || s[i] == '$' || s[i] == '(' || s[i] == ')'){ // (resolved) if someone writes add $s0 $s1 $s2 still it works...
+        for (int i = 0; i < s.size(); i++)
+        {
+            if (s[i] == ',' || s[i] == '$' || s[i] == '(' || s[i] == ')')
+            { // (resolved) if someone writes add $s0 $s1 $s2 still it works...
                 temp += ' ';
                 temp += s[i];
                 temp += ' ';
@@ -200,7 +207,8 @@ public:
         return getWords(temp);
     }
 
-    vector<string> getWords(string temp){                                   // returns vector of keywords
+    vector<string> getWords(string temp)
+    { // returns vector of keywords
         vector<string> v;
         string word = "";
         for (int i = 0; i < temp.length(); i++)
@@ -214,7 +222,7 @@ public:
                 if (++i != temp.length())
                 {
                     cout << "error";
-                    exit(1);                                                // assumption : only one string can be initialized and that too at only end
+                    exit(1); // assumption : only one string can be initialized and that too at only end
                 }
             }
             else if (temp[i] == ' ' || temp[i] == '\t')
@@ -233,7 +241,8 @@ public:
         return v;
     }
 
-    void stepByStepEecute(){                                                  // executes step by step
+    void stepByStepEecute()
+    { // executes step by step
 
         find_data();
         int i;
@@ -362,7 +371,8 @@ public:
                 }
             }
             programCounter++;
-            if (i + 1 == program.size()){                                                       // assumption :  there must be a syscall for exit else there will be an error
+            if (i + 1 == program.size())
+            { // assumption :  there must be a syscall for exit else there will be an error
                 cout << "\nERROR : No exit call" << endl;
                 exit(1);
             }
@@ -379,7 +389,6 @@ public:
                 exit(1);
         }
     }
-
 
     void execute()
     { // Executes program
@@ -517,12 +526,12 @@ public:
                 {
                     int tempi;
                     tempi = bne(program[i], i);
-                    if (tempi == program.size())            // checked entire program, label not found
+                    if (tempi == program.size()) // checked entire program, label not found
                     {
                         cout << "Label not found " << endl;
                         exit(1);
                     }
-                    if (tempi != -1)                        // branch taken, label also found
+                    if (tempi != -1) // branch taken, label also found
                     {
                         i = tempi;
                         programCounter = i;
@@ -577,6 +586,7 @@ public:
                     int address;
                     lw(program[i], i, address);
                     int memCycles = getMemCycles(address);
+                    // cout << "memCycles : " << memCycles << endl;
                     switch (flag)
                     {
                     case 1:
@@ -636,15 +646,15 @@ public:
                         exit(1);
                     }
                 }
-                else if (instruction == "syscall") 
+                else if (instruction == "syscall")
                 {
                     syscall(i);
                 }
-                else                                    // label check
+                else // label check
                 {
                     if (program[i].size() == 1 && instruction[instruction.length() - 1] == ':') // since label name is single string and ending with ':'
                         continue;
-                    else                                // not a label (or) valid instruction
+                    else // not a label (or) valid instruction
                     {
                         cout << "Error in line " << i + 1 << "." << endl;
                         exit(1);
@@ -665,7 +675,7 @@ public:
         Memdisplay();
     }
 
-    void registerDisplay()                  // displays current register contents
+    void registerDisplay() // displays current register contents
     {
         map<string, int>::iterator itr;
         for (itr = Register.begin(); itr != Register.end(); itr++)
@@ -793,7 +803,7 @@ public:
             }
             else
             {
-                i = -1;                     // branch not taken, return -1
+                i = -1; // branch not taken, return -1
             }
             return i;
         }
@@ -946,10 +956,10 @@ public:
             cout << "Memory: " << endl;
             Memdisplay();
             cout << "--------------------" << endl;
-            cout << "Number of stalls for each instruction: " << endl;
+            cout << "Stall Display: " << endl;
             for (int i = 0; i < program.size(); i++)
             {
-                string print_out = instructionStalls[i]>0?"STALL":"0";
+                string print_out = instructionStalls[i] > 0 ? "STALL" : "0";
                 cout << "\t" << i + 1 << "\t: " << print_out << endl;
             }
             cout << endl;
@@ -987,8 +997,9 @@ public:
         }
     }
 
-    int getMemCycles(int address){                      // 1. gives back additional memory cycles consumed per instruction
-        int indexBits1 = 0;                             // 2. also performs replacement policy(LRU)
+    int getMemCycles(int address)
+    {                       // 1. gives back additional memory cycles consumed per instruction
+        int indexBits1 = 0; // 2. also performs replacement policy(LRU)
         int indexBits2 = 0;
 
         int offsetBits1 = 0;
@@ -997,6 +1008,7 @@ public:
         int tagBits1 = 0;
         int tagBits2 = 0;
 
+        /********************************** Level 1 *************************************/
         cache->totalCacheAccess1++;
         int copyAddress1 = address;
         for (int i = 0; i < cache->offset1; i++)
@@ -1010,13 +1022,15 @@ public:
             copyAddress1 = copyAddress1 >> 1;
         }
         tagBits1 = copyAddress1;
-        /********************************** Level 1 *************************************/
+
         multimap<int, Block>::iterator itr, itrEnd;
+        itrEnd = cache->set1Array[indexBits1].end();
+        itrEnd--;
         for (itr = cache->set1Array[indexBits1].begin(); itr != cache->set1Array[indexBits1].end(); itr++)
         {
             if (tagBits1 == itr->second.tag)
             {
-                cache->set1Array[indexBits1].insert(make_pair(itr->first + 1, itr->second));
+                cache->set1Array[indexBits1].insert(make_pair(itrEnd->first + 1, itr->second));
                 cache->set1Array[indexBits1].erase(itr);
                 return cache->cache1Latency;
             }
@@ -1026,7 +1040,6 @@ public:
         Block block(tagBits1);
 
         itr = cache->set1Array[indexBits1].begin();
-        itrEnd = cache->set1Array[indexBits1].end();
         cache->set1Array[indexBits1].insert(make_pair(itrEnd->first + 1, block));
         cache->set1Array[indexBits1].erase(itr);
 
@@ -1044,22 +1057,22 @@ public:
             copyAddress2 = copyAddress2 >> 1;
         }
         tagBits2 = copyAddress2;
+
+        itrEnd = cache->set2Array[indexBits2].end();
+        itrEnd--;
         for (itr = cache->set2Array[indexBits2].begin(); itr != cache->set2Array[indexBits2].end(); itr++)
         {
             if (tagBits2 == itr->second.tag)
             {
-                cache->set2Array[indexBits2].insert(make_pair(itr->first + 1, itr->second));
+                cache->set2Array[indexBits2].insert(make_pair(itrEnd->first + 1, itr->second));
                 cache->set2Array[indexBits2].erase(itr);
                 return (cache->cache1Latency + cache->cache2Latency);
             }
         }
-
-        /**************************************** Memory *****************************************/
         cache->cacheMisses2++;
 
         Block node2(tagBits2);
         itr = cache->set2Array[indexBits2].begin();
-        itrEnd = cache->set2Array[indexBits2].end();
         cache->set2Array[indexBits2].insert(make_pair(itrEnd->first + 1, node2));
         cache->set2Array[indexBits2].erase(itr);
 
@@ -1074,7 +1087,7 @@ public:
         {
             copy1++;
         }
-        int copy2 = copy1 + 1; // check with spaces if this is correct
+        int copy2 = copy1 + 1; // (checked) check with spaces if this is correct
         while (copy2 + 1 < program.size() && (program[copy2 + 1].size() == 0 || program[copy2 + 1].size() == 1))
         {
             copy2++;
@@ -1248,7 +1261,8 @@ public:
         }
     }
 
-    void checkDependencyWithForwarding(int i, string reg1, string operation, int PC, int memCycles){
+    void checkDependencyWithForwarding(int i, string reg1, string operation, int PC, int memCycles)
+    {
         int copy1 = i;
         while (copy1 + 1 < program.size() && (program[copy1 + 1].size() == 0 || program[copy1 + 1].size() == 1))
         {
@@ -1445,7 +1459,7 @@ public:
     }
 
     void find_data()
-    {   // memory initialization
+    { // memory initialization
         vector<vector<string>>::iterator itr;
         for (itr = program.begin(); itr != program.end(); itr++, programCounter++)
         {
@@ -1574,9 +1588,9 @@ int main()
     cout << "/******MIPS Simulator******/\nEnter your file's name: \n";
     string fileName, dataFile;
     cout << "Code_File: ";
-    cin >> fileName;                        // input code file
-    cout << "Data_File: "; 
-    cin >> dataFile;                        // input parameter file
+    cin >> fileName; // input code file
+    cout << "Data_File: ";
+    cin >> dataFile; // input parameter file
     /*  Parameter variables */
     int cache1Size;
     int cache2Size;
@@ -1594,9 +1608,10 @@ int main()
 
     /* Fetching parameters from file  */
 
-    ifstream file1(dataFile); 
+    ifstream file1(dataFile);
     string dataInLine;
-    if(file1.is_open()){
+    if (file1.is_open())
+    {
         file1 >> cache1Size;
         file1 >> blockSize1;
         file1 >> associativity1;
@@ -1605,10 +1620,10 @@ int main()
         file1 >> blockSize2;
         file1 >> associativity2;
         file1 >> cache2Latency;
-
         file1 >> memoryLatency;
     }
-    else{
+    else
+    {
         cout << "Data File does not exist" << endl;
         exit(1);
     }
